@@ -244,6 +244,46 @@
     .spin { display: inline-block; animation: sp .8s linear infinite; }
     @keyframes sp { to { transform: rotate(360deg); } }
 
+    /* ── SECTION DIVIDER ─────────────────────────── */
+    .section-div {
+      font-size: 9px; letter-spacing: 3px; color: var(--dim);
+      text-transform: uppercase; padding: 6px 0 4px;
+      border-top: 1px solid var(--border); margin-bottom: 10px; margin-top: 4px;
+    }
+
+    /* ── STOCK CARDS ─────────────────────────────── */
+    .stock-price-num { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; line-height: 1; }
+    .stock-chg       { font-size: 11px; margin-top: 3px; }
+    .stock-closed    { font-size: 11px; color: var(--yellow); margin-top: 3px; }
+    .smins           { display: flex; gap: 5px; margin: 10px 0; }
+    .smblk {
+      flex: 1; aspect-ratio: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; border-radius: 6px;
+      border: 1.5px solid var(--border); background: var(--s2);
+      transition: all .2s ease; gap: 2px;
+    }
+    .smblk .sarrow { font-size: 13px; color: var(--dim); }
+    .smblk .slbl   { font-size: 8px; color: var(--dim); }
+    .smblk.up   { border-color: var(--green); background: rgba(16,185,129,.1); }
+    .smblk.up   .sarrow { color: var(--green); }
+    .smblk.down { border-color: var(--red);   background: rgba(239,68,68,.1); }
+    .smblk.down .sarrow { color: var(--red); }
+    .smblk.live { border-color: var(--blue); background: rgba(59,130,246,.08); animation: pulseborder 1.2s infinite; }
+    .smblk.live .sarrow { color: var(--blue); }
+    .smblk.bet  { border-color: var(--yellow); background: rgba(245,158,11,.1); animation: pulseyellow .6s infinite; }
+    .smblk.bet  .sarrow { color: var(--yellow); }
+    .stock-sig {
+      border-radius: 6px; padding: 8px 10px; text-align: center;
+      font-size: 12px; font-weight: 700; letter-spacing: 1px;
+      background: var(--s2); border: 1.5px solid var(--border);
+      transition: all .25s ease;
+    }
+    .stock-sig.sig-up   { border-color: var(--green); background: rgba(16,185,129,.08); color: var(--green); box-shadow: 0 0 12px rgba(16,185,129,.2); }
+    .stock-sig.sig-down { border-color: var(--red);   background: rgba(239,68,68,.08);  color: var(--red);   box-shadow: 0 0 12px rgba(239,68,68,.2); }
+    .stock-sig.sig-wait { border-color: var(--yellow); color: var(--yellow); }
+    .stock-wr  { font-size: 10px; color: var(--dim); margin-top: 3px; text-align: center; }
+    .stock-err { font-size: 10px; color: var(--red); margin-top: 6px; }
+
     /* ── UTILS ───────────────────────────────────── */
     .up { color: var(--green); } .down { color: var(--red); } .dim { color: var(--dim); }
     .mb { margin-bottom: 10px; }
@@ -351,6 +391,60 @@
       <button class="btn btn-skip btn-sm" style="width:100%" onclick="clearTrades()">CLEAR HISTORY</button>
     </div>
   </div>
+</div>
+
+<!-- EQUITIES -->
+<div class="section-div">EQUITIES · 5-MIN SIGNAL TRACKER</div>
+<div class="row row-3 mb" id="stocksRow">
+
+  <!-- TSLA -->
+  <div class="card" id="stock-TSLA">
+    <div class="card-title">TSLA · TESLA</div>
+    <div class="stock-price-num" id="TSLA-price">$—</div>
+    <div class="stock-chg dim" id="TSLA-chg">—</div>
+    <div class="smins" id="TSLA-mins">
+      <div class="smblk" id="TSLA-m0"><span class="sarrow">—</span><span class="slbl">M1</span></div>
+      <div class="smblk" id="TSLA-m1"><span class="sarrow">—</span><span class="slbl">M2</span></div>
+      <div class="smblk" id="TSLA-m2"><span class="sarrow">—</span><span class="slbl">M3</span></div>
+      <div class="smblk" id="TSLA-m3"><span class="sarrow">—</span><span class="slbl">M4</span></div>
+      <div class="smblk" id="TSLA-m4"><span class="sarrow">—</span><span class="slbl">M5</span></div>
+    </div>
+    <div class="stock-sig dim" id="TSLA-sig">WATCHING</div>
+    <div class="stock-wr" id="TSLA-wr">—</div>
+  </div>
+
+  <!-- NVDA -->
+  <div class="card" id="stock-NVDA">
+    <div class="card-title">NVDA · NVIDIA</div>
+    <div class="stock-price-num" id="NVDA-price">$—</div>
+    <div class="stock-chg dim" id="NVDA-chg">—</div>
+    <div class="smins" id="NVDA-mins">
+      <div class="smblk" id="NVDA-m0"><span class="sarrow">—</span><span class="slbl">M1</span></div>
+      <div class="smblk" id="NVDA-m1"><span class="sarrow">—</span><span class="slbl">M2</span></div>
+      <div class="smblk" id="NVDA-m2"><span class="sarrow">—</span><span class="slbl">M3</span></div>
+      <div class="smblk" id="NVDA-m3"><span class="sarrow">—</span><span class="slbl">M4</span></div>
+      <div class="smblk" id="NVDA-m4"><span class="sarrow">—</span><span class="slbl">M5</span></div>
+    </div>
+    <div class="stock-sig dim" id="NVDA-sig">WATCHING</div>
+    <div class="stock-wr" id="NVDA-wr">—</div>
+  </div>
+
+  <!-- MSTR -->
+  <div class="card" id="stock-MSTR">
+    <div class="card-title">MSTR · MICROSTRATEGY</div>
+    <div class="stock-price-num" id="MSTR-price">$—</div>
+    <div class="stock-chg dim" id="MSTR-chg">—</div>
+    <div class="smins" id="MSTR-mins">
+      <div class="smblk" id="MSTR-m0"><span class="sarrow">—</span><span class="slbl">M1</span></div>
+      <div class="smblk" id="MSTR-m1"><span class="sarrow">—</span><span class="slbl">M2</span></div>
+      <div class="smblk" id="MSTR-m2"><span class="sarrow">—</span><span class="slbl">M3</span></div>
+      <div class="smblk" id="MSTR-m3"><span class="sarrow">—</span><span class="slbl">M4</span></div>
+      <div class="smblk" id="MSTR-m4"><span class="sarrow">—</span><span class="slbl">M5</span></div>
+    </div>
+    <div class="stock-sig dim" id="MSTR-sig">WATCHING</div>
+    <div class="stock-wr" id="MSTR-wr">—</div>
+  </div>
+
 </div>
 
 <!-- PAPER TRADE ENTRY -->
@@ -468,8 +562,7 @@ function tick() {
   // ── conditions ──
   renderConditions(d);
 
-  // ── polymarket verdict re-render (no re-fetch, uses cached state) ──
-  if (polyState?.status === 'ok') renderPolymarket();
+  // polymarket renders on its own 10s interval
 }
 
 // ════════════════════════════════════════════════
@@ -850,27 +943,43 @@ tick();
 // ════════════════════════════════════════════════
 let polyState    = null;
 let polyFetchAt  = 0;
-const POLY_TTL   = 25_000; // re-fetch every 25s
+let polyRetryMs  = 30_000;   // backs off on error
+
+async function fetchWithTimeout(url, ms = 7000) {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    return r;
+  } finally {
+    clearTimeout(id);
+  }
+}
 
 async function fetchPolymarket() {
   const now = Date.now();
-  if (now - polyFetchAt < POLY_TTL) return;
+  if (now - polyFetchAt < polyRetryMs) return;
   polyFetchAt = now;
+  document.getElementById('polyStatus').innerHTML = '<span class="spin">◌</span> fetching…';
 
   try {
-    // Search Gamma API for active short-term BTC up/down markets
-    const searches = [
-      'https://gamma-api.polymarket.com/markets?search=bitcoin+higher&active=true&closed=false&limit=20',
-      'https://gamma-api.polymarket.com/markets?search=BTC+higher&active=true&closed=false&limit=20',
-    ];
+    // Search Gamma API — try direct first, fall back through CORS proxies
+    const BASE = 'https://gamma-api.polymarket.com/markets?search=bitcoin+higher&active=true&closed=false&limit=20';
+    const PROXY1 = 'https://corsproxy.io/?' + encodeURIComponent(BASE);
+    const PROXY2 = 'https://api.allorigins.win/get?url=' + encodeURIComponent(BASE);
+    const searches = [BASE, PROXY1, PROXY2];
 
     let markets = [];
     for (const url of searches) {
-      const r = await fetch(url);
-      if (!r.ok) continue;
-      const data = await r.json();
-      markets = markets.concat(Array.isArray(data) ? data : (data.results ?? data.markets ?? []));
-      if (markets.length) break;
+      try {
+        const r = await fetchWithTimeout(url);
+        if (!r.ok) continue;
+        const raw  = await r.json();
+        // allorigins wraps in { contents: '...' }
+        const data = raw.contents ? JSON.parse(raw.contents) : raw;
+        markets = markets.concat(Array.isArray(data) ? data : (data.results ?? data.markets ?? []));
+        if (markets.length) break;
+      } catch(e) { continue; }
     }
 
     // Find market expiring soonest, within next 15 minutes
@@ -888,6 +997,7 @@ async function fetchPolymarket() {
 
     if (!candidates.length) {
       polyState = { status: 'none' };
+      polyRetryMs = 60_000; // no active market — check less often
       return renderPolymarket();
     }
 
@@ -919,18 +1029,20 @@ async function fetchPolymarket() {
       } catch(e) { /* ignore */ }
     }
 
-    // If still missing, try CLOB midpoint as fallback
+    // If still missing, try CLOB midpoint via proxy
     if ((!yes || yes < 0.01) && yesToken?.token_id) {
-      try {
-        const cr = await fetch(
-          `https://clob.polymarket.com/midpoint?token_id=${yesToken.token_id}`
-        );
-        if (cr.ok) {
+      const clobUrl = `https://clob.polymarket.com/midpoint?token_id=${yesToken.token_id}`;
+      const clobUrls = [clobUrl, 'https://corsproxy.io/?' + encodeURIComponent(clobUrl)];
+      for (const cu of clobUrls) {
+        try {
+          const cr = await fetchWithTimeout(cu);
+          if (!cr.ok) continue;
           const cd = await cr.json();
           yes = parseFloat(cd.mid ?? 0);
           no  = yes > 0 ? 1 - yes : no;
-        }
-      } catch(e) { /* ignore */ }
+          if (yes > 0) break;
+        } catch(e) { continue; }
+      }
     }
 
     const endTime = new Date(m.endDate ?? m.end_date_iso ?? m.end_date ?? 0).getTime();
@@ -942,8 +1054,11 @@ async function fetchPolymarket() {
       no:       no  ?? 0,
       volume:   parseFloat(m.volume ?? m.volumeNum ?? 0),
     };
+    polyRetryMs = 30_000; // success — back to normal cadence
   } catch(e) {
-    polyState = { status: 'error', msg: String(e) };
+    const isTimeout = e.name === 'AbortError';
+    polyState = { status: 'error', msg: isTimeout ? 'Request timed out' : String(e) };
+    polyRetryMs = Math.min(120_000, polyRetryMs * 2); // exponential backoff, max 2 min
   }
 
   renderPolymarket();
@@ -975,8 +1090,9 @@ function renderPolymarket() {
     return;
   }
   if (polyState.status === 'error') {
-    statusEl.innerHTML = '🔴 fetch error';
-    qEl.textContent = 'Could not reach Polymarket API. CORS or network issue.';
+    const retry = Math.round(polyRetryMs / 1000);
+    statusEl.innerHTML = `🔴 unavailable · retry in ${retry}s`;
+    qEl.textContent = `Polymarket API unreachable (${polyState.msg ?? 'network error'}). Prices will retry automatically.`;
     verdictEl.style.display = 'none';
     return;
   }
@@ -1072,9 +1188,182 @@ function renderPolymarket() {
   }
 }
 
-// Poll Polymarket every 25s + on each tick
-setInterval(fetchPolymarket, 25_000);
+// Poll on a 10s interval — actual fetch is gated by polyRetryMs backoff
+setInterval(fetchPolymarket, 10_000);
 fetchPolymarket();
+
+// ════════════════════════════════════════════════
+// EQUITIES · TSLA / NVDA / MSTR
+// ════════════════════════════════════════════════
+const STOCKS = [
+  { sym: 'TSLA', name: 'Tesla' },
+  { sym: 'NVDA', name: 'NVIDIA' },
+  { sym: 'MSTR', name: 'MicroStrategy' },
+];
+let stockStates  = {};
+let stockFetchAt = 0;
+let stockRetryMs = 60_000; // poll every 60s during market hours
+
+// NYSE market hours: 9:30–16:00 ET
+// ET = UTC-4 (EDT, Mar–Nov) or UTC-5 (EST, Nov–Mar)
+// Approximate: open 13:30–20:00 UTC (EDT) or 14:30–21:00 UTC (EST)
+function marketOpen() {
+  const d = new Date();
+  const day = d.getUTCDay();
+  if (day === 0 || day === 6) return false;
+  const mins = d.getUTCHours() * 60 + d.getUTCMinutes();
+  // Accept either EDT window (13:30–20:00) or EST window (14:30–21:00)
+  return mins >= 13 * 60 + 30 && mins < 21 * 60;
+}
+
+async function fetchStock(sym) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1m&range=1d`;
+  const proxies = [
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+  ];
+  for (const p of proxies) {
+    try {
+      const r = await fetchWithTimeout(p, 10_000);
+      if (!r.ok) continue;
+      const raw  = await r.json();
+      const body = raw.contents ? JSON.parse(raw.contents) : raw;
+      const res  = body?.chart?.result?.[0];
+      if (!res) continue;
+
+      const meta      = res.meta ?? {};
+      const tss       = res.timestamp ?? [];
+      const q         = res.indicators?.quote?.[0] ?? {};
+      const opens     = q.open  ?? [];
+      const closes    = q.close ?? [];
+
+      const curPrice  = meta.regularMarketPrice ?? closes.filter(Boolean).pop() ?? 0;
+      const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? curPrice;
+      const mktState  = meta.marketState ?? 'UNKNOWN'; // REGULAR | PRE | POST | CLOSED
+
+      // Build minDirs for current 5-min window
+      const now = Date.now();
+      const cs  = candleStart(now);
+      const dirs = Array(5).fill(null);
+      let co = null; // candle open price
+
+      for (let i = 0; i < tss.length; i++) {
+        const ts = tss[i] * 1000;
+        if (ts < cs || ts >= cs + 300_000) continue;
+        const mi = Math.floor((ts - cs) / 60_000);
+        if (mi > 3) continue;
+        const o = opens[i], c = closes[i];
+        if (o == null || c == null) continue;
+        if (co === null) co = o;
+        dirs[mi] = c > o ? 'up' : 'down';
+      }
+
+      stockStates[sym] = { price: curPrice, prevClose, mktState, dirs, candleOpen: co ?? curPrice, err: null };
+      return; // success
+    } catch(e) { continue; }
+  }
+  // All proxies failed
+  if (!stockStates[sym]) stockStates[sym] = { err: 'unavailable' };
+  else stockStates[sym].err = 'fetch failed';
+}
+
+async function fetchAllStocks() {
+  const now = Date.now();
+  if (now - stockFetchAt < stockRetryMs) return;
+  stockFetchAt = now;
+  await Promise.all(STOCKS.map(s => fetchStock(s.sym)));
+  renderAllStocks();
+}
+
+function calcStockSignal(dirs) {
+  const obs = dirs.slice(0, 4).filter(d => d !== null);
+  const n   = obs.length;
+  if (n < 3) return null;
+  const allUp   = obs.every(d => d === 'up');
+  const allDown = obs.every(d => d === 'down');
+  if (!allUp && !allDown) return null;
+  const dir = allUp ? 'up' : 'down';
+  return { dir, n, winRate: WR[n] ? (dir === 'up' ? WR[n].up : WR[n].down) : WR[3].up };
+}
+
+function renderStock(sym) {
+  const s   = stockStates[sym] ?? {};
+  const mi  = minIdx(Date.now());
+  const sl  = secsLeft(Date.now());
+
+  // Price
+  const priceEl = document.getElementById(`${sym}-price`);
+  const chgEl   = document.getElementById(`${sym}-chg`);
+  if (s.price) {
+    priceEl.textContent = `$${s.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const chg    = s.price - (s.prevClose ?? s.price);
+    const chgPct = s.prevClose ? (chg / s.prevClose * 100) : 0;
+    const sign   = chg >= 0 ? '+' : '';
+    chgEl.textContent = `${sign}$${Math.abs(chg).toFixed(2)} (${sign}${chgPct.toFixed(2)}%)`;
+    chgEl.className   = `stock-chg ${chg >= 0 ? 'up' : 'down'}`;
+
+    // Market state badge
+    if (s.mktState && s.mktState !== 'REGULAR') {
+      chgEl.textContent += ` · ${s.mktState}`;
+    }
+  }
+
+  // Minute blocks
+  const dirs = s.dirs ?? Array(5).fill(null);
+  for (let i = 0; i < 5; i++) {
+    const el    = document.getElementById(`${sym}-m${i}`);
+    const arrow = el.querySelector('.sarrow');
+    el.className = 'smblk';
+    if (dirs[i] === 'up')   { el.classList.add('up');   arrow.textContent = '▲'; }
+    else if (dirs[i] === 'down') { el.classList.add('down'); arrow.textContent = '▼'; }
+    else if (i === mi) {
+      el.classList.add(i === 4 ? 'bet' : 'live');
+      arrow.textContent = i === 4 ? '$' : '●';
+    } else {
+      arrow.textContent = '—';
+    }
+  }
+
+  // Signal
+  const sigEl = document.getElementById(`${sym}-sig`);
+  const wrEl  = document.getElementById(`${sym}-wr`);
+
+  if (s.err && !s.price) {
+    sigEl.className = 'stock-sig dim'; sigEl.textContent = 'UNAVAILABLE';
+    wrEl.textContent = s.err; return;
+  }
+  if (!marketOpen() && s.mktState !== 'REGULAR') {
+    sigEl.className = 'stock-sig dim'; sigEl.textContent = 'MKT CLOSED';
+    wrEl.textContent = 'NYSE 9:30–16:00 ET'; return;
+  }
+
+  const sig = calcStockSignal(dirs);
+  if (sig) {
+    const isUp = sig.dir === 'up';
+    sigEl.className = `stock-sig ${isUp ? 'sig-up' : 'sig-down'}`;
+    sigEl.textContent = isUp ? '▲ BUY UP' : '▼ BUY DOWN';
+    wrEl.textContent  = `${sig.winRate.toFixed(2)}% WIN RATE · ${sig.n}/4 consistent`;
+  } else if (mi === 4) {
+    sigEl.className = 'stock-sig sig-wait'; sigEl.textContent = '⚡ BET WINDOW';
+    wrEl.textContent = 'No consistent signal';
+  } else {
+    sigEl.className = 'stock-sig dim'; sigEl.textContent = 'WATCHING';
+    wrEl.textContent = `Minute ${mi + 1} of 5`;
+  }
+}
+
+function renderAllStocks() {
+  STOCKS.forEach(s => renderStock(s.sym));
+}
+
+// Render on the tick too (minute blocks need live updates)
+const _origTick = tick;
+// Patch tick to also refresh stock minute blocks every second
+setInterval(renderAllStocks, 1_000);
+
+// Initial fetch + polling
+fetchAllStocks();
+setInterval(fetchAllStocks, 10_000); // gated internally by stockRetryMs
 </script>
 </body>
 </html>
