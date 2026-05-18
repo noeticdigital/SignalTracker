@@ -468,7 +468,8 @@ function tick() {
   // ── conditions ──
   renderConditions(d);
 
-  // polymarket renders on its own 10s interval
+  // ── polymarket verdict re-render (no re-fetch, uses cached state) ──
+  if (polyState?.status === 'ok') renderPolymarket();
 }
 
 // ════════════════════════════════════════════════
@@ -849,43 +850,27 @@ tick();
 // ════════════════════════════════════════════════
 let polyState    = null;
 let polyFetchAt  = 0;
-let polyRetryMs  = 30_000;   // backs off on error
-
-async function fetchWithTimeout(url, ms = 7000) {
-  const ctrl = new AbortController();
-  const id = setTimeout(() => ctrl.abort(), ms);
-  try {
-    const r = await fetch(url, { signal: ctrl.signal });
-    return r;
-  } finally {
-    clearTimeout(id);
-  }
-}
+const POLY_TTL   = 25_000; // re-fetch every 25s
 
 async function fetchPolymarket() {
   const now = Date.now();
-  if (now - polyFetchAt < polyRetryMs) return;
+  if (now - polyFetchAt < POLY_TTL) return;
   polyFetchAt = now;
-  document.getElementById('polyStatus').innerHTML = '<span class="spin">◌</span> fetching…';
 
   try {
-    // Search Gamma API — try direct first, fall back through CORS proxies
-    const BASE = 'https://gamma-api.polymarket.com/markets?search=bitcoin+higher&active=true&closed=false&limit=20';
-    const PROXY1 = 'https://corsproxy.io/?' + encodeURIComponent(BASE);
-    const PROXY2 = 'https://api.allorigins.win/get?url=' + encodeURIComponent(BASE);
-    const searches = [BASE, PROXY1, PROXY2];
+    // Search Gamma API for active short-term BTC up/down markets
+    const searches = [
+      'https://gamma-api.polymarket.com/markets?search=bitcoin+higher&active=true&closed=false&limit=20',
+      'https://gamma-api.polymarket.com/markets?search=BTC+higher&active=true&closed=false&limit=20',
+    ];
 
     let markets = [];
     for (const url of searches) {
-      try {
-        const r = await fetchWithTimeout(url);
-        if (!r.ok) continue;
-        const raw  = await r.json();
-        // allorigins wraps in { contents: '...' }
-        const data = raw.contents ? JSON.parse(raw.contents) : raw;
-        markets = markets.concat(Array.isArray(data) ? data : (data.results ?? data.markets ?? []));
-        if (markets.length) break;
-      } catch(e) { continue; }
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const data = await r.json();
+      markets = markets.concat(Array.isArray(data) ? data : (data.results ?? data.markets ?? []));
+      if (markets.length) break;
     }
 
     // Find market expiring soonest, within next 15 minutes
@@ -903,7 +888,6 @@ async function fetchPolymarket() {
 
     if (!candidates.length) {
       polyState = { status: 'none' };
-      polyRetryMs = 60_000; // no active market — check less often
       return renderPolymarket();
     }
 
@@ -935,20 +919,18 @@ async function fetchPolymarket() {
       } catch(e) { /* ignore */ }
     }
 
-    // If still missing, try CLOB midpoint via proxy
+    // If still missing, try CLOB midpoint as fallback
     if ((!yes || yes < 0.01) && yesToken?.token_id) {
-      const clobUrl = `https://clob.polymarket.com/midpoint?token_id=${yesToken.token_id}`;
-      const clobUrls = [clobUrl, 'https://corsproxy.io/?' + encodeURIComponent(clobUrl)];
-      for (const cu of clobUrls) {
-        try {
-          const cr = await fetchWithTimeout(cu);
-          if (!cr.ok) continue;
+      try {
+        const cr = await fetch(
+          `https://clob.polymarket.com/midpoint?token_id=${yesToken.token_id}`
+        );
+        if (cr.ok) {
           const cd = await cr.json();
           yes = parseFloat(cd.mid ?? 0);
           no  = yes > 0 ? 1 - yes : no;
-          if (yes > 0) break;
-        } catch(e) { continue; }
-      }
+        }
+      } catch(e) { /* ignore */ }
     }
 
     const endTime = new Date(m.endDate ?? m.end_date_iso ?? m.end_date ?? 0).getTime();
@@ -960,11 +942,8 @@ async function fetchPolymarket() {
       no:       no  ?? 0,
       volume:   parseFloat(m.volume ?? m.volumeNum ?? 0),
     };
-    polyRetryMs = 30_000; // success — back to normal cadence
   } catch(e) {
-    const isTimeout = e.name === 'AbortError';
-    polyState = { status: 'error', msg: isTimeout ? 'Request timed out' : String(e) };
-    polyRetryMs = Math.min(120_000, polyRetryMs * 2); // exponential backoff, max 2 min
+    polyState = { status: 'error', msg: String(e) };
   }
 
   renderPolymarket();
@@ -996,9 +975,8 @@ function renderPolymarket() {
     return;
   }
   if (polyState.status === 'error') {
-    const retry = Math.round(polyRetryMs / 1000);
-    statusEl.innerHTML = `🔴 unavailable · retry in ${retry}s`;
-    qEl.textContent = `Polymarket API unreachable (${polyState.msg ?? 'network error'}). Prices will retry automatically.`;
+    statusEl.innerHTML = '🔴 fetch error';
+    qEl.textContent = 'Could not reach Polymarket API. CORS or network issue.';
     verdictEl.style.display = 'none';
     return;
   }
@@ -1094,8 +1072,8 @@ function renderPolymarket() {
   }
 }
 
-// Poll on a 10s interval — actual fetch is gated by polyRetryMs backoff
-setInterval(fetchPolymarket, 10_000);
+// Poll Polymarket every 25s + on each tick
+setInterval(fetchPolymarket, 25_000);
 fetchPolymarket();
 </script>
 </body>
