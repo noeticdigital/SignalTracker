@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Regime Bot · BTC Paper Trading</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:      #0b0b10;
+      --s1:      #14141b;
+      --s2:      #1b1b24;
+      --border:  rgba(255,255,255,.07);
+      --border2: rgba(255,255,255,.12);
+      --text:    #e8e8f0;
+      --dim:     #8b8b9e;
+      --green:   #34d399;
+      --red:     #f87171;
+      --yellow:  #fbbf24;
+      --blue:    #60a5fa;
+      --purple:  #a78bfa;
+      --accent:  linear-gradient(135deg,#6366f1 0%,#8b5cf6 55%,#a855f7 100%);
+      --glow:    rgba(124,93,250,.13);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      background:var(--bg); color:var(--text);
+      font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+      font-size:13px; line-height:1.45;
+      font-variant-numeric: tabular-nums;
+      overflow-x:hidden;
+    }
+    body::before {
+      content:''; position:fixed; top:-300px; left:30%; width:900px; height:600px;
+      background:radial-gradient(ellipse, var(--glow), transparent 65%);
+      pointer-events:none; z-index:0;
+    }
+
+    /* ── APP SHELL ─────────────────────────────── */
+    .app { display:flex; min-height:100vh; position:relative; z-index:1; }
+    .sidebar {
+      width:225px; flex-shrink:0; position:sticky; top:0; height:100vh;
+      display:flex; flex-direction:column;
+      background:rgba(15,15,21,.85); backdrop-filter:blur(14px);
+      border-right:1px solid var(--border); padding:20px 12px;
+    }
+    .logo { display:flex; align-items:center; gap:10px; padding:0 10px 22px; font-weight:800; font-size:15px; letter-spacing:-.02em; }
+    .logo-mark {
+      width:28px; height:28px; border-radius:8px; background:var(--accent);
+      display:flex; align-items:center; justify-content:center;
+      font-size:13px; color:#fff; box-shadow:0 4px 18px rgba(139,92,246,.45);
+    }
+    .logo span { background:var(--accent); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .nav { display:flex; flex-direction:column; gap:2px; }
+    .nav-label { font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); padding:14px 10px 6px; opacity:.7; }
+    .nav-item {
+      display:flex; align-items:center; gap:10px; padding:8px 10px;
+      border-radius:8px; color:var(--dim); text-decoration:none;
+      font-size:13px; font-weight:500; transition:all .15s;
+    }
+    .nav-item:hover { color:var(--text); background:rgba(255,255,255,.04); }
+    .nav-item.active { color:var(--text); background:rgba(139,92,246,.14); }
+    .nav-item.active .nav-ico { color:var(--purple); }
+    .nav-ico { width:16px; text-align:center; font-size:13px; opacity:.9; }
+    .sidebar-foot { margin-top:auto; padding:12px 10px; display:flex; flex-direction:column; gap:10px; }
+    .paper-badge {
+      font-size:10px; font-weight:700; letter-spacing:.08em; text-align:center;
+      padding:7px 10px; border-radius:8px;
+      background:rgba(52,211,153,.1); color:var(--green);
+      border:1px solid rgba(52,211,153,.25);
+    }
+    .ext-link { font-size:12px; color:var(--dim); text-decoration:none; padding:6px 10px; border-radius:8px; border:1px solid var(--border); text-align:center; transition:all .15s; }
+    .ext-link:hover { color:var(--text); border-color:var(--border2); }
+
+    main { flex:1; min-width:0; padding:0 28px 60px; }
+
+    /* ── TOPBAR ────────────────────────────────── */
+    .topbar {
+      position:sticky; top:0; z-index:20; margin:0 -28px; padding:14px 28px;
+      display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+      background:rgba(11,11,16,.8); backdrop-filter:blur(14px);
+      border-bottom:1px solid var(--border);
+    }
+    .clocks { display:flex; gap:16px; align-items:center; font-size:12.5px; color:var(--dim); font-weight:500; }
+    .clocks b { color:var(--text); font-weight:600; }
+    .pill {
+      display:inline-flex; align-items:center; gap:7px; font-size:11.5px; font-weight:600;
+      padding:5px 12px; border-radius:99px; border:1px solid var(--border);
+      background:var(--s1); color:var(--dim);
+    }
+    .dot { width:7px; height:7px; border-radius:50%; background:var(--dim); }
+    .dot.live { background:var(--green); box-shadow:0 0 8px rgba(52,211,153,.8); animation:blink 2s infinite; }
+    @keyframes blink { 50% { opacity:.45; } }
+
+    /* ── SECTIONS / CARDS ──────────────────────── */
+    section { scroll-margin-top:76px; }
+    .sec-head { display:flex; align-items:baseline; gap:10px; margin:34px 0 14px; }
+    .sec-head h2 { font-size:16px; font-weight:700; letter-spacing:-.02em; }
+    .sec-head p { font-size:12px; color:var(--dim); }
+    .row { display:grid; gap:14px; }
+    .row-2 { grid-template-columns:1fr 1fr; }
+    @media (max-width:900px) { .row-2 { grid-template-columns:1fr; } }
+    .card {
+      background:var(--s1); border:1px solid var(--border); border-radius:14px;
+      padding:18px 20px; transition:border-color .2s;
+    }
+    .card:hover { border-color:var(--border2); }
+    .card-title {
+      font-size:10.5px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+      color:var(--dim); margin-bottom:14px;
+      display:flex; justify-content:space-between; align-items:center; gap:8px;
+    }
+
+    /* ── REGIME ────────────────────────────────── */
+    .regime-box { border-radius:12px; border:1px solid var(--border); background:var(--s2); padding:18px; text-align:center; transition:all .3s; }
+    .regime-box.r-bull { border-color:rgba(52,211,153,.4);  background:linear-gradient(180deg,rgba(52,211,153,.09),var(--s2)); }
+    .regime-box.r-bear { border-color:rgba(248,113,113,.4); background:linear-gradient(180deg,rgba(248,113,113,.09),var(--s2)); }
+    .regime-box.r-chop { border-color:rgba(251,191,36,.35); background:linear-gradient(180deg,rgba(251,191,36,.07),var(--s2)); }
+    .regime-label { font-size:21px; font-weight:800; letter-spacing:-.01em; }
+    .regime-sub { font-size:12px; color:var(--dim); margin-top:4px; }
+    .stab-line { font-size:12px; margin-top:12px; padding:8px 10px; border-radius:9px; background:rgba(0,0,0,.25); border:1px solid var(--border); }
+    .prob-row { display:flex; gap:10px; margin-top:14px; }
+    .prob-cell { flex:1; }
+    .prob-name { font-size:10px; font-weight:600; color:var(--dim); letter-spacing:.06em; margin-bottom:4px; display:flex; justify-content:space-between; }
+    .prob-bar { height:5px; background:rgba(255,255,255,.07); border-radius:3px; overflow:hidden; }
+    .prob-fill { height:100%; border-radius:3px; transition:width .4s ease; }
+
+    /* ── BOT STATUS ────────────────────────────── */
+    .bot-status { border-radius:12px; border:1px solid var(--border); background:var(--s2); padding:18px; text-align:center; transition:all .3s; }
+    .bot-status.running { border-color:rgba(52,211,153,.4); }
+    .bot-status.halted  { border-color:rgba(248,113,113,.4); background:linear-gradient(180deg,rgba(248,113,113,.07),var(--s2)); }
+    .bot-state { font-size:19px; font-weight:800; letter-spacing:-.01em; }
+    .bot-detail { font-size:12px; color:var(--dim); margin-top:5px; }
+    .btn {
+      padding:9px 14px; border:none; border-radius:9px; font-family:inherit;
+      font-size:12px; font-weight:600; cursor:pointer; transition:all .15s;
+    }
+    .btn:hover { transform:translateY(-1px); filter:brightness(1.1); }
+    .btn:active { transform:none; }
+    .btn:disabled { opacity:.4; cursor:default; transform:none; }
+    .btn-green { background:var(--accent); color:#fff; box-shadow:0 4px 16px rgba(139,92,246,.35); }
+    .btn-red   { background:rgba(248,113,113,.14); color:var(--red); border:1px solid rgba(248,113,113,.35); }
+    .btn-blue  { background:rgba(96,165,250,.13); color:var(--blue); border:1px solid rgba(96,165,250,.3); }
+    .btn-ghost { background:transparent; color:var(--dim); border:1px solid var(--border); }
+    .btn-ghost:hover { color:var(--text); border-color:var(--border2); }
+    .btn-row { display:flex; gap:8px; margin-top:12px; }
+    .btn-row .btn { flex:1; }
+
+    /* ── STAT TILES ────────────────────────────── */
+    .stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+    @media (max-width:900px) { .stat-grid { grid-template-columns:1fr 1fr; } }
+    .stat-cell { background:var(--s2); border:1px solid var(--border); border-radius:11px; padding:13px 12px; text-align:center; transition:border-color .2s; }
+    .stat-cell:hover { border-color:var(--border2); }
+    .stat-num { font-size:19px; font-weight:700; letter-spacing:-.02em; }
+    .stat-lbl { font-size:9.5px; font-weight:600; color:var(--dim); letter-spacing:.08em; text-transform:uppercase; margin-top:3px; }
+    .brk-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+    @media (max-width:900px) { .brk-grid { grid-template-columns:1fr 1fr; } }
+    .brk-cell { background:var(--s2); border:1px solid var(--border); border-radius:11px; padding:13px 12px; text-align:center; }
+    .brk-num { font-size:17px; font-weight:700; }
+    .brk-lbl { font-size:9.5px; font-weight:600; color:var(--dim); letter-spacing:.08em; text-transform:uppercase; margin-top:3px; }
+    .brk-ladder { font-size:11px; color:var(--dim); line-height:1.8; margin-top:12px; }
+    .brk-ladder b { color:var(--text); font-weight:600; }
+
+    .lockdown-banner {
+      display:none; margin-top:12px; border:1px solid rgba(248,113,113,.5);
+      background:rgba(248,113,113,.08); border-radius:12px; padding:14px; text-align:center;
+    }
+    .lockdown-banner.active { display:block; animation:blink 1.6s infinite; }
+
+    .meter { height:7px; background:rgba(255,255,255,.07); border-radius:4px; position:relative; margin-top:5px; }
+    .meter-fill { height:100%; border-radius:4px; transition:width .4s; }
+    .meter-mark { position:absolute; top:-2px; width:2px; height:11px; background:var(--dim); border-radius:1px; }
+
+    /* ── CONFIG ────────────────────────────────── */
+    .cfg-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); gap:10px; }
+    .cfg-row:last-child { border-bottom:none; }
+    .cfg-lbl { color:var(--dim); font-size:12.5px; font-weight:500; }
+    .cfg-input {
+      background:var(--s2); border:1px solid var(--border); color:var(--text);
+      padding:6px 10px; border-radius:8px; font-family:inherit; font-size:12.5px;
+      width:95px; text-align:right; transition:border-color .15s;
+    }
+    .cfg-input:focus { outline:none; border-color:var(--purple); }
+    select.cfg-input { width:auto; text-align:left; }
+
+    /* ── LOG ───────────────────────────────────── */
+    .log { max-height:280px; overflow-y:auto; font-size:12px; }
+    .log::-webkit-scrollbar { width:4px; }
+    .log::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+    .log-line { padding:6px 0; border-bottom:1px solid var(--border); display:flex; gap:10px; }
+    .log-line:last-child { border-bottom:none; }
+    .log-time { color:var(--dim); flex-shrink:0; font-weight:500; }
+    .log-empty { text-align:center; color:var(--dim); padding:26px; }
+
+    /* ── BACKTEST ──────────────────────────────── */
+    canvas { width:100%; border-radius:11px; background:var(--s2); border:1px solid var(--border); }
+    .bt-progress { height:5px; background:rgba(255,255,255,.07); border-radius:3px; overflow:hidden; margin:10px 0; display:none; }
+    .bt-progress-fill { height:100%; background:var(--accent); width:0%; transition:width .3s; }
+    table.bt-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:12px; }
+    .bt-table th { color:var(--dim); font-weight:600; text-align:right; padding:6px 8px; border-bottom:1px solid var(--border2); font-size:10px; letter-spacing:.07em; text-transform:uppercase; }
+    .bt-table td { text-align:right; padding:6px 8px; border-bottom:1px solid var(--border); }
+    .bt-table tr:hover td { background:rgba(255,255,255,.02); }
+    .bt-table th:first-child, .bt-table td:first-child { text-align:left; }
+    .bt-table tr.hl td { color:var(--purple); font-weight:600; }
+
+    .note { font-size:11px; color:var(--dim); line-height:1.6; margin-top:10px; }
+    .up { color:var(--green); } .down { color:var(--red); } .dim { color:var(--dim); }
+    .yellow { color:var(--yellow); } .purple { color:var(--purple); } .green { color:var(--green); }
+    .mb { margin-bottom:14px; }
+
+    /* mobile shell */
+    @media (max-width:760px) {
+      .app { flex-direction:column; }
+      .sidebar { width:100%; height:auto; position:relative; flex-direction:row; align-items:center; gap:8px; padding:12px; overflow-x:auto; }
+      .logo { padding:0 8px 0 0; }
+      .nav { flex-direction:row; }
+      .nav-label, .sidebar-foot { display:none; }
+      main { padding:0 14px 40px; }
+      .topbar { margin:0 -14px; padding:10px 14px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="logo"><div class="logo-mark">◆</div>Regime<span>Bot</span></div>
+    <nav class="nav">
+      <div class="nav-label">Trading</div>
+      <a href="#overview" class="nav-item active"><span class="nav-ico">◉</span>Overview</a>
+      <a href="#edge" class="nav-item"><span class="nav-ico">◭</span>Edge Monitor</a>
+      <a href="#risk" class="nav-item"><span class="nav-ico">⛨</span>Risk &amp; Breakers</a>
+      <div class="nav-label">System</div>
+      <a href="#config" class="nav-item"><span class="nav-ico">⚙</span>Strategy Config</a>
+      <a href="#backtest" class="nav-item"><span class="nav-ico">▤</span>Backtest Lab</a>
+      <a href="#activity" class="nav-item"><span class="nav-ico">≡</span>Activity</a>
+    </nav>
+    <div class="sidebar-foot">
+      <a class="ext-link" href="index.html">↗ Signal Tracker</a>
+      <div class="paper-badge">PAPER · NO REAL MONEY</div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div class="clocks">
+        <span><b id="clockJst">--:--:--</b></span>
+        <span id="clockUtc">--:-- UTC</span>
+        <span class="pill" id="candleClock">—</span>
+      </div>
+      <div class="pill"><span class="dot" id="dot"></span><span id="connLabel">Connecting…</span></div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <section id="overview">
+      <div class="sec-head"><h2>Overview</h2><p>Student-t HMM regime gate · Bayesian-sized paper execution</p></div>
+      <div class="row row-2 mb">
+        <div class="card">
+          <div class="card-title"><span>Market Regime</span><span id="hmmMeta" class="dim">training…</span></div>
+          <div class="regime-box" id="regimeBox">
+            <div class="regime-label dim" id="regimeLabel">TRAINING</div>
+            <div class="regime-sub" id="regimeSub">Fitting HMM on recent 5-min features…</div>
+            <div class="prob-row">
+              <div class="prob-cell">
+                <div class="prob-name"><span>BULL</span><span id="pBullTxt">—</span></div>
+                <div class="prob-bar"><div class="prob-fill" id="pBull" style="width:0%;background:var(--green)"></div></div>
+              </div>
+              <div class="prob-cell">
+                <div class="prob-name"><span>CHOP</span><span id="pChopTxt">—</span></div>
+                <div class="prob-bar"><div class="prob-fill" id="pChop" style="width:0%;background:var(--yellow)"></div></div>
+              </div>
+              <div class="prob-cell">
+                <div class="prob-name"><span>BEAR</span><span id="pBearTxt">—</span></div>
+                <div class="prob-bar"><div class="prob-fill" id="pBear" style="width:0%;background:var(--red)"></div></div>
+              </div>
+            </div>
+            <div class="stab-line" id="stabLine">Stability: collecting bars…</div>
+          </div>
+          <div class="note">Features: return + realized-vol + volume (rolling z-scores). Student-t emissions (ν=5) resist fat-tail flicker. State count picked by BIC each retrain. Unconfirmed transitions trade the previous stable regime at ×0.75.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span>Orchestrator</span></div>
+          <div class="bot-status" id="botBox">
+            <div class="bot-state dim" id="botState">STOPPED</div>
+            <div class="bot-detail" id="botDetail">Bot is idle. Start in OBSERVE to log signals without betting.</div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-blue"  id="btnObserve" onclick="setMode('observe')">Observe</button>
+            <button class="btn btn-green" id="btnPaper"   onclick="setMode('paper')">Paper Trade</button>
+            <button class="btn btn-red"   id="btnStop"    onclick="setMode('stopped')">Kill</button>
+          </div>
+          <div class="note">Paper mode auto-bets gated signals, resolves at candle close vs the Binance print, and survives tab reloads. No real money — ever.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>Paper Bankroll</span>
+          <button class="btn btn-ghost" style="padding:5px 12px;font-size:11px" onclick="resetBankroll()">Reset</button>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-cell"><div class="stat-num" id="stBank">$—</div><div class="stat-lbl">Bankroll</div></div>
+          <div class="stat-cell"><div class="stat-num" id="stDayPnl">$0</div><div class="stat-lbl">Today P&amp;L</div></div>
+          <div class="stat-cell"><div class="stat-num" id="stTrades">0</div><div class="stat-lbl">Trades</div></div>
+          <div class="stat-cell"><div class="stat-num" id="stWr">—</div><div class="stat-lbl">Win Rate</div></div>
+          <div class="stat-cell"><div class="stat-num" id="stStreak">—</div><div class="stat-lbl">Streak</div></div>
+          <div class="stat-cell"><div class="stat-num" id="stDd">—</div><div class="stat-lbl">Max Drawdown</div></div>
+          <div class="stat-cell"><div class="stat-num" id="stSkipped">0</div><div class="stat-lbl">Gated / Skipped</div></div>
+          <div class="stat-cell"><div class="stat-num" id="stHalts">0</div><div class="stat-lbl">Risk Halts</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EDGE -->
+    <section id="edge">
+      <div class="sec-head"><h2>Edge Monitor</h2><p>Learned, not assumed — the bot must prove its own edge</p></div>
+      <div class="row row-2">
+        <div class="card">
+          <div class="card-title"><span>Win-Rate Posterior</span><span id="edgeVerdict" class="dim">—</span></div>
+          <div class="stat-grid" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="stat-cell"><div class="stat-num" id="emGlobal">—</div><div class="stat-lbl">Est. Win Rate ±90% CI</div></div>
+            <div class="stat-cell"><div class="stat-num" id="emBull">—</div><div class="stat-lbl">Bull Bucket</div></div>
+            <div class="stat-cell"><div class="stat-num" id="emBear">—</div><div class="stat-lbl">Bear Bucket</div></div>
+          </div>
+          <div style="margin-top:14px">
+            <div class="prob-name"><span>SPRT · EDGE ALIVE ◂ ▸ EDGE DEAD</span><span id="sprtTxt">0.0</span></div>
+            <div class="meter"><div class="meter-fill" id="sprtFill" style="width:50%;background:var(--blue)"></div><div class="meter-mark" style="left:50%"></div></div>
+            <div class="prob-name" style="margin-top:10px"><span>CUSUM DRIFT</span><span id="cusumTxt">0.00</span></div>
+            <div class="meter"><div class="meter-fill" id="cusumFill" style="width:0%;background:var(--yellow)"></div></div>
+          </div>
+          <div class="note">Discounted Beta posterior updated every resolved trade (skeptical prior, starts below breakeven). Stakes are Kelly-sized on the <b>pessimistic</b> bound. SPRT hitting the right edge = statistically dead edge → lockdown. CUSUM full = slow drift → stakes ×0.5.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span>Tape · Order-Flow Confirmation</span><span id="tapeState" class="dim">warming up…</span></div>
+          <div class="stat-grid" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="stat-cell"><div class="stat-num" id="tpTaker">—</div><div class="stat-lbl">Taker Buy 4 Min</div></div>
+            <div class="stat-cell"><div class="stat-num" id="tpPerp">—</div><div class="stat-lbl">Perp Lead</div></div>
+            <div class="stat-cell"><div class="stat-num" id="tpSpike">0</div><div class="stat-lbl">Settlement Spikes</div></div>
+          </div>
+          <div class="note">Aggressor flow and perp-vs-spot deviation must not <b>contradict</b> a signal or it is vetoed. A final-15-seconds taker spike against a pending bet is logged as a settlement-push alarm — the manipulation signature from the July 2026 study.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RISK -->
+    <section id="risk">
+      <div class="sec-head"><h2>Risk &amp; Breakers</h2><p>Fire on actual P&amp;L — independent of the model</p></div>
+      <div class="card">
+        <div class="card-title"><span>Circuit Breakers</span><span id="brkLevel" class="dim">LEVEL 0 · ALL CLEAR</span></div>
+        <div class="brk-grid">
+          <div class="brk-cell"><div class="brk-num" id="brkDay">—</div><div class="brk-lbl">Today</div></div>
+          <div class="brk-cell"><div class="brk-num" id="brkWeek">—</div><div class="brk-lbl">This Week (JST)</div></div>
+          <div class="brk-cell"><div class="brk-num" id="brkDd">—</div><div class="brk-lbl">Off Peak</div></div>
+          <div class="brk-cell"><div class="brk-num" id="brkTrades">—</div><div class="brk-lbl">Trades Today</div></div>
+        </div>
+        <div class="brk-ladder">
+          <b>Ladder:</b> day −<span id="lad1">2.5</span>% → ×0.5 · day −<span id="lad2">5</span>% → day stop · week −5% → ×0.5 · <b>week −7% → week stop</b> ·
+          <b>−10% off peak → LOCKDOWN</b> · SPRT edge-dead → LOCKDOWN · glidepath caps every stake at (10%−dd)/(1−dd) of bankroll
+        </div>
+        <div class="lockdown-banner" id="lockBanner">
+          <div style="font-size:15px;font-weight:800;color:var(--red);letter-spacing:.06em">⛔ LOCKDOWN</div>
+          <div class="note" id="lockReason" style="color:var(--text)"></div>
+          <div class="note">Review the activity log and understand what went wrong before re-arming.</div>
+          <button class="btn btn-red" style="margin-top:10px" onclick="reArm()">Re-arm (requires typing RESUME)</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONFIG -->
+    <section id="config">
+      <div class="sec-head"><h2>Strategy Config</h2><p>Every rule enforced by the loop, not by willpower</p></div>
+      <div class="row row-2">
+        <div class="card">
+          <div class="card-title">Strategy / Allocation</div>
+          <div class="cfg-row"><span class="cfg-lbl">Signal rule</span>
+            <select class="cfg-input" id="cfgRule">
+              <option value="4">4/4 minutes</option>
+              <option value="3">3/3 minutes</option>
+            </select>
+          </div>
+          <div class="cfg-row"><span class="cfg-lbl">Regime gate</span>
+            <select class="cfg-input" id="cfgGate">
+              <option value="strict">Strict (dir must match stable regime)</option>
+              <option value="nochop">No-chop (any stable trend ok)</option>
+              <option value="off">Off (ungated)</option>
+            </select>
+          </div>
+          <div class="cfg-row"><span class="cfg-lbl">Tape veto (taker flow + perp lead)</span>
+            <select class="cfg-input" id="cfgTape">
+              <option value="on">On (live only)</option>
+              <option value="off">Off</option>
+            </select>
+          </div>
+          <div class="cfg-row"><span class="cfg-lbl">Sizing</span>
+            <select class="cfg-input" id="cfgSizing">
+              <option value="bayes">Bayesian Kelly (learned win rate)</option>
+              <option value="fixed">Fixed stake</option>
+              <option value="fract">Fixed fraction of bankroll</option>
+            </select>
+          </div>
+          <div class="cfg-row"><span class="cfg-lbl">Fixed stake $</span><input class="cfg-input" id="cfgStake" type="number" value="100" min="1"></div>
+          <div class="cfg-row"><span class="cfg-lbl">Fraction %</span><input class="cfg-input" id="cfgFract" type="number" value="2" min="0.1" step="0.1"></div>
+          <div class="cfg-row"><span class="cfg-lbl">Assumed entry price $</span><input class="cfg-input" id="cfgEntry" type="number" value="0.70" min="0.05" max="0.99" step="0.01"></div>
+          <div class="cfg-row"><span class="cfg-lbl">Confidence floor (no-trade below)</span><input class="cfg-input" id="cfgConfFloor" type="number" value="0.55" min="0.34" max="0.95" step="0.01"></div>
+          <div class="cfg-row"><span class="cfg-lbl">Confidence sizing</span>
+            <select class="cfg-input" id="cfgConfSize">
+              <option value="on">On (scale by regime confidence)</option>
+              <option value="off">Off</option>
+            </select>
+          </div>
+          <div class="note">Final stake = Bayesian-Kelly base × confidence tier × flicker/transition penalty × breaker multiplier, capped by max-stake % and the drawdown glidepath.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Risk Management</div>
+          <div class="cfg-row"><span class="cfg-lbl">Max daily loss % (full day-stop)</span><input class="cfg-input" id="cfgDayLoss" type="number" value="5" min="0.5" step="0.5"></div>
+          <div class="cfg-row"><span class="cfg-lbl">Max trades per day</span><input class="cfg-input" id="cfgMaxDaily" type="number" value="20" min="1"></div>
+          <div class="cfg-row"><span class="cfg-lbl">Max consecutive losses</span><input class="cfg-input" id="cfgMaxLosses" type="number" value="3" min="1"></div>
+          <div class="cfg-row"><span class="cfg-lbl">Cooldown after streak (candles)</span><input class="cfg-input" id="cfgCooldown" type="number" value="6" min="1"></div>
+          <div class="cfg-row"><span class="cfg-lbl">Max stake % of bankroll</span><input class="cfg-input" id="cfgMaxStakePct" type="number" value="5" min="0.5" step="0.5"></div>
+          <div class="cfg-row"><span class="cfg-lbl">Min bankroll floor $</span><input class="cfg-input" id="cfgFloor" type="number" value="500" min="0"></div>
+          <div class="cfg-row"><span class="cfg-lbl">Weekend trading</span>
+            <select class="cfg-input" id="cfgWeekend">
+              <option value="allow">Allow</option>
+              <option value="block">Block Sat/Sun</option>
+            </select>
+          </div>
+          <div class="note">Day counters reset midnight JST, weekly on Monday JST. The SPRT edge-death test is a first-class breaker: statistical proof of a dead edge locks the bot down exactly like a −10% drawdown.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BACKTEST -->
+    <section id="backtest">
+      <div class="sec-head"><h2>Backtest Lab</h2><p>Walk-forward · benchmarked · stress-tested</p></div>
+      <div class="card">
+        <div class="card-title"><span>Walk-Forward Backtest</span>
+          <span>
+            <select class="cfg-input" id="btDays" style="margin-right:8px">
+              <option value="2">2 days</option>
+              <option value="4" selected>4 days</option>
+              <option value="7">7 days</option>
+            </select>
+            <button class="btn btn-green" style="padding:7px 18px" id="btnBt" onclick="runBacktest()">Run</button>
+          </span>
+        </div>
+        <div class="bt-progress" id="btProg"><div class="bt-progress-fill" id="btProgFill"></div></div>
+        <div id="btStatus" class="note">Train 24 h → test blind 6 h → roll. Benchmarks: ungated signal + 30-seed random Monte Carlo (mean±std). Stress: slippage, 5% outcome-flip Monte Carlo, and regime-shuffle (proves the breakers contain damage even when the model is garbage). PSR = probability the result isn't luck.</div>
+        <canvas id="btCanvas" height="180" style="display:none;margin-top:12px"></canvas>
+        <div id="btResults"></div>
+      </div>
+    </section>
+
+    <!-- ACTIVITY -->
+    <section id="activity">
+      <div class="sec-head"><h2>Activity</h2><p>Every decision, logged</p></div>
+      <div class="card">
+        <div class="card-title"><span>Activity Log</span>
+          <button class="btn btn-ghost" style="padding:5px 12px;font-size:11px" onclick="clearBotLog()">Clear</button>
+        </div>
+        <div class="log" id="botLog"><div class="log-empty">Bot idle — no activity yet</div></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+
+'use strict';
+// ═════════════════════════════════════════════════════════════
+//  PURE MATH — Student-t HMM with BIC state selection
+//  Features per 5-min bar: [ret_z, logRV_z, logVol_z] (causal z)
+// ═════════════════════════════════════════════════════════════
+const NU = 5;                                   // fixed t degrees of freedom
+const LOG_C_T = -0.96925;                       // lgamma(3)-lgamma(2.5)-0.5*ln(5*pi), ν=5
+const VAR_FLOOR = 1e-4;
+
+function tLogPdf(x, mu, v) {
+  const z2 = (x - mu) * (x - mu) / v;
+  return LOG_C_T - 0.5 * Math.log(v) - ((NU + 1) / 2) * Math.log(1 + z2 / NU);
+}
+function emissionProb(model, obs) {
+  const K = model.K, d = obs.length, p = [];
+  for (let i = 0; i < K; i++) {
+    let lg = 0;
+    for (let j = 0; j < d; j++) lg += tLogPdf(obs[j], model.mu[i][j], model.v[i][j]);
+    p.push(Math.max(Math.exp(lg), 1e-300));
+  }
+  return p;
+}
+
+function hmmInit(X, K, seed) {
+  const d = X[0].length;
+  const col = j => X.map(o => o[j]);
+  const ret = col(0).slice().sort((a, b) => a - b);
+  const q = f => ret[Math.min(ret.length - 1, Math.floor(f * ret.length))];
+  const jit = k => 1 + 0.15 * Math.sin(seed * 12.9898 + k * 78.233);
+  const colVar = j => {
+    const c = col(j), m = c.reduce((s, x) => s + x, 0) / c.length;
+    return Math.max(c.reduce((s, x) => s + (x - m) * (x - m), 0) / c.length, VAR_FLOOR);
+  };
+  const vars = Array.from({ length: d }, (_, j) => colVar(j));
+  const mu = [], v = [];
+  for (let i = 0; i < K; i++) {
+    // spread state means across return quantiles; other dims start at overall mean
+    const frac = K === 1 ? 0.5 : 0.1 + 0.8 * i / (K - 1);
+    const m = [q(frac) * jit(i * d + 1)];
+    for (let j = 1; j < d; j++) {
+      const c = col(j);
+      m.push((c.reduce((s, x) => s + x, 0) / c.length) * jit(i * d + j + 1));
+    }
+    mu.push(m);
+    v.push(vars.map((vv, j) => vv * jit(i * d + j + 7)));
+  }
+  const A = Array.from({ length: K }, (_, i) =>
+    Array.from({ length: K }, (_, jj) => i === jj ? 0.9 : 0.1 / (K - 1)));
+  return { K, pi: new Array(K).fill(1 / K), A, mu, v };
+}
+
+function hmmForwardBackward(model, X) {
+  const T = X.length, K = model.K;
+  const alpha = [], beta = [], scale = [], B = [];
+  for (let t = 0; t < T; t++) B.push(emissionProb(model, X[t]));
+  let a0 = model.pi.map((p, i) => p * B[0][i]);
+  let s0 = a0.reduce((s, x) => s + x, 0) || 1e-300;
+  scale.push(s0); alpha.push(a0.map(x => x / s0));
+  for (let t = 1; t < T; t++) {
+    const at = new Array(K).fill(0);
+    for (let jj = 0; jj < K; jj++) {
+      let acc = 0;
+      for (let i = 0; i < K; i++) acc += alpha[t - 1][i] * model.A[i][jj];
+      at[jj] = acc * B[t][jj];
+    }
+    const st = at.reduce((s, x) => s + x, 0) || 1e-300;
+    scale.push(st); alpha.push(at.map(x => x / st));
+  }
+  beta[T - 1] = new Array(K).fill(1);
+  for (let t = T - 2; t >= 0; t--) {
+    const bt = new Array(K).fill(0);
+    for (let i = 0; i < K; i++) {
+      let acc = 0;
+      for (let jj = 0; jj < K; jj++) acc += model.A[i][jj] * B[t + 1][jj] * beta[t + 1][jj];
+      bt[i] = acc / scale[t + 1];
+    }
+    beta[t] = bt;
+  }
+  const logLik = scale.reduce((s, c) => s + Math.log(c), 0);
+  return { alpha, beta, B, logLik };
+}
+
+function hmmFitK(X, K, maxIter, restarts) {
+  const d = X[0].length;
+  let best = null;
+  for (let r = 0; r < restarts; r++) {
+    let model = hmmInit(X, K, r + 1);
+    let prevLL = -Infinity;
+    for (let iter = 0; iter < maxIter; iter++) {
+      const { alpha, beta, B, logLik } = hmmForwardBackward(model, X);
+      const T = X.length;
+      const gamma = [];
+      for (let t = 0; t < T; t++) {
+        const g = alpha[t].map((a, i) => a * beta[t][i]);
+        const s = g.reduce((x, y) => x + y, 0) || 1e-300;
+        gamma.push(g.map(x => x / s));
+      }
+      const xiSum = Array.from({ length: K }, () => new Array(K).fill(0));
+      const gSumT = new Array(K).fill(0);
+      for (let t = 0; t < T - 1; t++) {
+        let z = 0;
+        const xi = Array.from({ length: K }, () => new Array(K).fill(0));
+        for (let i = 0; i < K; i++) for (let jj = 0; jj < K; jj++) {
+          const val = alpha[t][i] * model.A[i][jj] * B[t + 1][jj] * beta[t + 1][jj];
+          xi[i][jj] = val; z += val;
+        }
+        z = z || 1e-300;
+        for (let i = 0; i < K; i++) {
+          gSumT[i] += gamma[t][i];
+          for (let jj = 0; jj < K; jj++) xiSum[i][jj] += xi[i][jj] / z;
+        }
+      }
+      const nm = { K, pi: gamma[0].slice(), A: [], mu: [], v: [] };
+      for (let i = 0; i < K; i++) {
+        nm.A.push(xiSum[i].map(x => x / (gSumT[i] || 1e-300)));
+        const rs = nm.A[i].reduce((s, x) => s + x, 0) || 1;
+        nm.A[i] = nm.A[i].map(x => x / rs);
+        // Student-t ECM: per-dim precision weights u = (ν+1)/(ν+z²)
+        const mu = new Array(d).fill(0), vv = new Array(d).fill(0);
+        for (let j = 0; j < d; j++) {
+          let wSum = 0, wxSum = 0;
+          for (let t = 0; t < T; t++) {
+            const z2 = (X[t][j] - model.mu[i][j]) ** 2 / model.v[i][j];
+            const u = (NU + 1) / (NU + z2);
+            wSum += gamma[t][i] * u;
+            wxSum += gamma[t][i] * u * X[t][j];
+          }
+          mu[j] = wxSum / (wSum || 1e-300);
+          let vSum = 0, gSum = 0;
+          for (let t = 0; t < T; t++) {
+            const z2 = (X[t][j] - model.mu[i][j]) ** 2 / model.v[i][j];
+            const u = (NU + 1) / (NU + z2);
+            vSum += gamma[t][i] * u * (X[t][j] - mu[j]) ** 2;
+            gSum += gamma[t][i];
+          }
+          vv[j] = Math.max(vSum / (gSum || 1e-300), VAR_FLOOR);
+        }
+        nm.mu.push(mu); nm.v.push(vv);
+      }
+      model = nm;
+      if (Math.abs(logLik - prevLL) < 1e-5 * Math.abs(prevLL || 1)) { prevLL = logLik; break; }
+      prevLL = logLik;
+    }
+    if (!best || prevLL > best.logLik) best = { model, logLik: prevLL };
+  }
+  return best;
+}
+
+// BIC model selection over candidate state counts (video doc Phase 2)
+function hmmFit(X, opts = {}) {
+  if (!X || X.length < 60) return null;
+  const Ks = opts.Ks ?? [2, 3, 4];
+  const maxIter = opts.maxIter ?? 30;
+  const restarts = opts.restarts ?? 2;
+  const d = X[0].length, n = X.length;
+  let best = null;
+  const bics = {};
+  for (const K of Ks) {
+    const fit = hmmFitK(X, K, maxIter, restarts);
+    const nParams = (K - 1) + K * (K - 1) + 2 * K * d;
+    const bic = -2 * fit.logLik + nParams * Math.log(n);
+    bics[K] = Math.round(bic);
+    if (!best || bic < best.bic) best = { ...fit, bic, K };
+  }
+  // Label states by mean return (dim 0): lowest=bear, highest=bull, middle=chop
+  const m = best.model;
+  const order = Array.from({ length: m.K }, (_, i) => i).sort((a, b) => m.mu[a][0] - m.mu[b][0]);
+  best.labels = {};
+  order.forEach((st, rank) => {
+    best.labels[st] = rank === 0 ? 'bear' : rank === m.K - 1 ? 'bull' : 'chop';
+  });
+  best.bics = bics;
+  return best;
+}
+
+function hmmFilter(fit, X) {
+  if (!fit || !X || X.length === 0) return null;
+  const { alpha } = hmmForwardBackward(fit.model, X);
+  const last = alpha[alpha.length - 1];
+  const out = { bull: 0, chop: 0, bear: 0 };
+  for (let i = 0; i < fit.model.K; i++) out[fit.labels[i]] += last[i];
+  return out;
+}
+// full filtered sequence — used by the look-ahead regression test
+function hmmFilterSeq(fit, X) {
+  const { alpha } = hmmForwardBackward(fit.model, X);
+  return alpha.map(a => {
+    const out = { bull: 0, chop: 0, bear: 0 };
+    for (let i = 0; i < fit.model.K; i++) out[fit.labels[i]] += a[i];
+    return out;
+  });
+}
+
+// ═════════════════════════════════════════════════════════════
+//  PURE — candles, features, signals, stability
+// ═════════════════════════════════════════════════════════════
+const FIVE_MIN = 300000;
+const cStart = ts => Math.floor(ts / FIVE_MIN) * FIVE_MIN;
+
+// klines: [{t,o,c,v}] 1-min → 5-min bars with realized vol + volume
+function build5m(klines) {
+  const out = new Map();
+  for (const k of klines) {
+    const cs = cStart(k.t);
+    if (!out.has(cs)) out.set(cs, { start: cs, open: null, close: null, minDirs: [null, null, null, null], rv: 0, vol: 0 });
+    const c5 = out.get(cs);
+    const mi = Math.floor((k.t - cs) / 60000);
+    if (mi === 0) c5.open = k.o;
+    if (mi === 4) c5.close = k.c;
+    if (mi <= 3) c5.minDirs[mi] = k.c > k.o ? 'up' : (k.c < k.o ? 'down' : null);
+    if (mi === 4) c5.result = k.c > c5.open ? 'up' : (k.c < c5.open ? 'down' : 'flat');
+    const r = Math.log(k.c / k.o);
+    c5.rv += r * r;
+    c5.vol += (k.v ?? 0);
+  }
+  return [...out.values()].filter(c => c.open != null && c.close != null).sort((a, b) => a.start - b.start);
+}
+
+// raw features per bar i (needs i>=1): [ret_bps, log RV, log volume]
+function rawFeatures(c5) {
+  const F = [null];
+  for (let i = 1; i < c5.length; i++) {
+    F.push([
+      Math.log(c5[i].close / c5[i - 1].close) * 10000,
+      Math.log(c5[i].rv + 1e-10),
+      Math.log(c5[i].vol + 1),
+    ]);
+  }
+  return F;
+}
+
+// causal rolling z-score (window L, per column). F[0]=null preserved.
+function zScoreFeatures(F, L = 288) {
+  const d = 3, n = F.length;
+  const Z = [null];
+  const sums = [0, 0, 0], sqs = [0, 0, 0];
+  const buf = [];
+  for (let i = 1; i < n; i++) {
+    buf.push(F[i]);
+    for (let j = 0; j < d; j++) { sums[j] += F[i][j]; sqs[j] += F[i][j] * F[i][j]; }
+    if (buf.length > L) {
+      const old = buf.shift();
+      for (let j = 0; j < d; j++) { sums[j] -= old[j]; sqs[j] -= old[j] * old[j]; }
+    }
+    const m = buf.length;
+    const z = [];
+    for (let j = 0; j < d; j++) {
+      const mean = sums[j] / m;
+      const sd = Math.sqrt(Math.max(sqs[j] / m - mean * mean, 1e-10));
+      z.push((F[i][j] - mean) / sd);
+    }
+    Z.push(z);
+  }
+  return Z;
+}
+
+function candleSignal(c5, rule) {
+  const need = rule === 4 ? 4 : 3;
+  const obs = c5.minDirs.slice(0, need);
+  if (obs.some(dd => dd === null)) return null;
+  if (obs.every(dd => dd === 'up')) return 'up';
+  if (obs.every(dd => dd === 'down')) return 'down';
+  return null;
+}
+
+function topOf(probs) { return Object.entries(probs).sort((a, b) => b[1] - a[1])[0][0]; }
+
+function stableTop(tops, need = 3) {
+  if (tops.length < need) return null;
+  const tail = tops.slice(-need);
+  return tail.every(t => t === tail[0]) ? tail[0] : null;
+}
+function flickerCount(tops, win = 20) {
+  const tail = tops.slice(-win);
+  let flips = 0;
+  for (let i = 1; i < tail.length; i++) if (tail[i] !== tail[i - 1]) flips++;
+  return flips;
+}
+function gateAllowsStable(gate, dir, sTop) {
+  if (gate === 'off') return true;
+  if (!sTop) return false;
+  if (gate === 'nochop') return sTop !== 'chop';
+  return (dir === 'up' && sTop === 'bull') || (dir === 'down' && sTop === 'bear');
+}
+function confMult(conf) {
+  if (conf == null) return 1;
+  if (conf >= 0.90) return 1.0;
+  if (conf >= 0.75) return 0.75;
+  return 0.5;
+}
+
+// ═════════════════════════════════════════════════════════════
+//  PURE — betting math: Beta posterior, Bayesian Kelly, SPRT,
+//  CUSUM, drawdown glidepath, breakers, PSR
+// ═════════════════════════════════════════════════════════════
+function netOdds(entry, fee = 0.02) { return (1 / entry - 1) * (1 - fee); }
+function breakevenP(entry, fee = 0.02) { return 1 / (1 + netOdds(entry, fee)); }
+
+// discounted Beta-Bernoulli update (γ<1 caps effective memory)
+function betaUpdate(post, win, gamma = 0.995) {
+  return { a: post.a * gamma + (win ? 1 : 0), b: post.b * gamma + (win ? 0 : 1) };
+}
+function betaStats(post) {
+  const n = post.a + post.b;
+  const mean = post.a / n;
+  const sd = Math.sqrt(mean * (1 - mean) / (n + 1));
+  return { mean, sd, n };
+}
+// shrink a sparse bucket toward the global posterior (prior strength w0)
+function pooledP(bucket, global, w0 = 20) {
+  const nb = bucket.a + bucket.b, sb = betaStats(bucket), sg = betaStats(global);
+  const w = nb / (nb + w0);
+  const mean = w * sb.mean + (1 - w) * sg.mean;
+  const sd = Math.sqrt(mean * (1 - mean) / (nb + w0 + 1));
+  return { mean, sd };
+}
+// Kelly on the pessimistic (lower-quantile) win probability
+function kellyBayes(pStats, b, z = 1.28) {
+  const pCons = Math.max(0, pStats.mean - z * pStats.sd);
+  return Math.max(0, pCons - (1 - pCons) / b);
+}
+
+// SPRT: H1 "edge alive p1" vs H0 "edge dead p0". llr drifts POSITIVE toward dead.
+function sprtUpdate(llr, win, p0, p1) {
+  return llr + (win ? Math.log(p0 / p1) : Math.log((1 - p0) / (1 - p1)));
+}
+const SPRT_DEAD = Math.log(0.95 / 0.05);      // ≈ +2.944 → edge statistically dead
+const SPRT_ALIVE = Math.log(0.05 / 0.95);     // ≈ −2.944 → edge confirmed, reset
+
+// one-sided CUSUM on losses vs reference win rate
+function cusumUpdate(s, win, pRef, k = 0.02) {
+  return Math.max(0, s + (pRef - (win ? 1 : 0)) + k * 0 - (win ? 0 : 0) - k);
+}
+const CUSUM_ALARM = 0.30;
+
+// Hsieh–Barmish drawdown glidepath: stake cap fraction, hits 0 at dMax
+function ddCapFraction(bank, peak, dMax = 0.10) {
+  const dd = peak > 0 ? Math.max(0, (peak - bank) / peak) : 0;
+  return Math.max(0, (dMax - dd) / (1 - dd));
+}
+
+function computeStake(cfg, bankroll, price, mult, pStats) {
+  let stake;
+  if (cfg.sizing === 'fixed') stake = cfg.stake;
+  else if (cfg.sizing === 'fract') stake = bankroll * cfg.fract / 100;
+  else {
+    const b = netOdds(price);
+    const f = kellyBayes(pStats ?? { mean: 0.68, sd: 0.05 }, b);
+    // exploration floor: the skeptical prior sits below breakeven, so pure
+    // Kelly would never trade and the posterior could never learn. Tiny
+    // fixed-fraction stakes buy the evidence; Kelly takes over once the
+    // pessimistic bound clears breakeven.
+    stake = Math.max(bankroll * f, bankroll * 0.0025);
+  }
+  stake *= mult;
+  stake = Math.min(stake, bankroll * cfg.maxStakePct / 100, bankroll);
+  return Math.max(0, Math.round(stake * 100) / 100);
+}
+
+function tradePnl(stake, price, won) {
+  if (!won) return -stake;
+  const shares = stake / price;
+  return (shares - stake) * 0.98;
+}
+
+// breaker ladder incl. weekly hard halt (video doc Phase 5)
+function breakerCheck(cfg, bank, peak, dayStart, weekStart) {
+  const dd = peak > 0 ? (peak - bank) / peak : 0;
+  if (dd >= 0.10) return { blocked: true, lockdown: true, mult: 0, reason: '−10% off peak' };
+  const dayPct = dayStart > 0 ? (bank - dayStart) / dayStart * 100 : 0;
+  const weekPct = weekStart > 0 ? (bank - weekStart) / weekStart * 100 : 0;
+  if (dayPct <= -cfg.dayLoss) return { blocked: true, lockdown: false, mult: 0, reason: `day −${cfg.dayLoss}% stop` };
+  if (weekPct <= -7) return { blocked: true, lockdown: false, mult: 0, reason: 'week −7% stop' };
+  let mult = 1, reason = null;
+  if (dayPct <= -cfg.dayLoss / 2) { mult = 0.5; reason = 'day half-limit ×0.5'; }
+  if (weekPct <= -5) { mult = 0.5; reason = (reason ? reason + ' + ' : '') + 'week −5% ×0.5'; }
+  return { blocked: false, lockdown: false, mult, reason };
+}
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function jstDayKey(ts) { return Math.floor((ts + 9 * 3600000) / 86400000); }
+function jstWeekKey(ts) { return Math.floor((jstDayKey(ts) + 3) / 7); }
+
+// Probabilistic Sharpe Ratio (Bailey & López de Prado) on per-trade returns
+function normCdf(x) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(x));
+  const dnorm = Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI);
+  const p = dnorm * t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+  return x >= 0 ? 1 - p : p;
+}
+function psr(returns) {
+  const T = returns.length;
+  if (T < 10) return null;
+  const m = returns.reduce((s, x) => s + x, 0) / T;
+  const sd = Math.sqrt(returns.reduce((s, x) => s + (x - m) ** 2, 0) / T) || 1e-12;
+  const sr = m / sd;
+  const skew = returns.reduce((s, x) => s + ((x - m) / sd) ** 3, 0) / T;
+  const kurt = returns.reduce((s, x) => s + ((x - m) / sd) ** 4, 0) / T;
+  const denom = Math.sqrt(Math.max(1 - skew * sr + (kurt - 1) / 4 * sr * sr, 1e-12));
+  return normCdf(sr * Math.sqrt(T - 1) / denom);
+}
+
+// taker-flow stats from a trades buffer [{t, q, buy}]
+function takerStats(buf, now, winMs = 240000) {
+  let bV = 0, sV = 0;
+  for (const tr of buf) {
+    if (now - tr.t > winMs) continue;
+    if (tr.buy) bV += tr.q; else sV += tr.q;
+  }
+  const tot = bV + sV;
+  return { ratio: tot > 0 ? bV / tot : 0.5, total: tot };
+}
+// settlement-push detector: last 15s flow vs prior 60s baseline
+function spikeCheck(buf, now) {
+  let b15 = 0, s15 = 0, tot60 = 0;
+  for (const tr of buf) {
+    const age = now - tr.t;
+    if (age <= 15000) { if (tr.buy) b15 += tr.q; else s15 += tr.q; }
+    else if (age <= 75000) tot60 += tr.q;
+  }
+  const tot15 = b15 + s15;
+  const base15 = tot60 / 4 || 1e-9;
+  if (tot15 < base15 * 3) return null;                    // no volume spike
+  const ratio = tot15 > 0 ? b15 / tot15 : 0.5;
+  if (ratio > 0.72) return 'up';
+  if (ratio < 0.28) return 'down';
+  return null;
+}
+
+// ═════════════════════════════════════════════════════════════
+//  CONFIG + STATE (persisted, v3)
+// ═════════════════════════════════════════════════════════════
+const LS_KEY = 'regimebot_v3';
+const PRIOR = { a: 20.4, b: 9.6 };  // skeptical: mean 0.68 (below breakeven), strength 30
+const DEFAULT_STATE = {
+  bankroll: 10000, startBankroll: 10000, peak: 10000,
+  dayKey: null, dayStart: 10000, weekKey: null, weekStart: 10000,
+  trades: 0, wins: 0, streak: 0, skipped: 0, halts: 0, maxDd: 0,
+  cooldownUntil: 0, mode: 'stopped', lockdown: null,
+  post: { global: { ...PRIOR }, bull: { ...PRIOR }, bear: { ...PRIOR } },
+  sprtLlr: 0, cusum: 0,
+  tradesToday: 0, tradeDayKey: null, spikeAlarms: 0,
+  pendingTrade: null,
+};
+let S = { ...JSON.parse(JSON.stringify(DEFAULT_STATE)), ...(JSON.parse(localStorage.getItem(LS_KEY) || '{}')) };
+S.post = S.post ?? JSON.parse(JSON.stringify(DEFAULT_STATE.post));
+S.mode = 'stopped';
+function saveS() { localStorage.setItem(LS_KEY, JSON.stringify(S)); }
+
+function readCfg() {
+  return {
+    rule:        parseInt(document.getElementById('cfgRule').value, 10),
+    gate:        document.getElementById('cfgGate').value,
+    tape:        document.getElementById('cfgTape').value === 'on',
+    sizing:      document.getElementById('cfgSizing').value,
+    stake:       parseFloat(document.getElementById('cfgStake').value) || 100,
+    fract:       parseFloat(document.getElementById('cfgFract').value) || 2,
+    entry:       Math.min(0.99, Math.max(0.05, parseFloat(document.getElementById('cfgEntry').value) || 0.70)),
+    confFloor:   parseFloat(document.getElementById('cfgConfFloor').value) || 0.55,
+    confSize:    document.getElementById('cfgConfSize').value === 'on',
+    dayLoss:     parseFloat(document.getElementById('cfgDayLoss').value) || 5,
+    maxDaily:    parseInt(document.getElementById('cfgMaxDaily').value, 10) || 20,
+    maxLosses:   parseInt(document.getElementById('cfgMaxLosses').value, 10) || 3,
+    cooldown:    parseInt(document.getElementById('cfgCooldown').value, 10) || 6,
+    maxStakePct: parseFloat(document.getElementById('cfgMaxStakePct').value) || 5,
+    floor:       parseFloat(document.getElementById('cfgFloor').value) || 0,
+    weekend:     document.getElementById('cfgWeekend').value,
+  };
+}
+
+// ═════════════════════════════════════════════════════════════
+//  LIVE DATA — Binance spot + perp
+// ═════════════════════════════════════════════════════════════
+let ws = null, wsPerp = null;
+let livePrice = null;
+let oneMin = [];
+let hmmFitLive = null;
+let regimeProbs = null;
+let regimeHistory = [];
+let lastStable = null;         // last confirmed stable regime (transition softening)
+let lastRegimeBar = 0;
+let lastTrainAt = 0;
+let lastEvalCandle = 0;
+let tapeBuf = [];              // [{t,q,buy}] spot taker trades, 5-min retention
+let perpMid = null, basisEma = null, basisScale = 1;
+
+async function fetchJson(url, ms = 10000) {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  try { const r = await fetch(url, { signal: ctrl.signal }); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); }
+  finally { clearTimeout(id); }
+}
+
+async function loadHistory() {
+  const rows = await fetchJson('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=1000');
+  const rows2 = await fetchJson('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=1000&endTime=' + (rows[0][0] - 1));
+  oneMin = [...rows2, ...rows].map(r => ({ t: r[0], o: parseFloat(r[1]), c: parseFloat(r[4]), v: parseFloat(r[5]) }));
+  reconcilePending();
+  trainLive();
+}
+
+// pending-trade recovery after tab reload (video doc Phase 7 state recovery)
+function reconcilePending() {
+  if (!S.pendingTrade) return;
+  const t = S.pendingTrade;
+  const done = build5m(oneMin).find(c => c.start === t.candleStart && c.result);
+  if (done) {
+    logLine('Recovered pending trade from before reload — resolving', 'dim');
+    resolveTrade(done);
+  } else if (Date.now() - t.candleStart > 2 * 3600000) {
+    S.pendingTrade = null; saveS();
+    logLine('Stale pending trade (candle outside history) — voided', 'yellow');
+  }
+}
+
+function featuresLive() {
+  const c5 = build5m(oneMin);
+  return { c5, Z: zScoreFeatures(rawFeatures(c5)) };
+}
+
+function trainLive() {
+  const { c5, Z } = featuresLive();
+  if (c5.length < 120) return;
+  const X = Z.slice(-500).filter(Boolean);
+  hmmFitLive = hmmFit(X);
+  if (!hmmFitLive) return;
+  lastTrainAt = Date.now();
+  regimeHistory = [];
+  for (let i = Math.max(4, c5.length - 12); i < c5.length; i++) {
+    const hist = Z.slice(Math.max(1, i - 120), i + 1).filter(Boolean);
+    const probs = hmmFilter(hmmFitLive, hist);
+    if (probs) regimeHistory.push({ start: c5[i].start, top: topOf(probs), conf: probs[topOf(probs)] });
+  }
+  if (regimeHistory.length) {
+    lastRegimeBar = regimeHistory[regimeHistory.length - 1].start;
+    regimeProbs = hmmFilter(hmmFitLive, X.slice(-120));
+    const sTop = stableTop(regimeHistory.map(r => r.top));
+    if (sTop) lastStable = sTop;
+  }
+  document.getElementById('hmmMeta').textContent =
+    `K=${hmmFitLive.K} · BIC ${JSON.stringify(hmmFitLive.bics).replace(/"/g, '')}`;
+  renderRegime();
+  logLine(`HMM retrained: K=${hmmFitLive.K} selected by BIC over {2,3,4}`, 'purple');
+}
+
+function connect() {
+  try { ws = new WebSocket('wss://stream.binance.com:9443/stream?streams=btcusdt@aggTrade/btcusdt@kline_1m'); }
+  catch (e) { setTimeout(connect, 4000); return; }
+  ws.onopen = () => {
+    document.getElementById('dot').className = 'dot live';
+    document.getElementById('connLabel').textContent = 'Live · Binance';
+    loadHistory().catch(() => logLine('History load failed — will retry on next candle', 'down'));
+  };
+  ws.onmessage = e => {
+    const msg = JSON.parse(e.data);
+    if (msg.stream.includes('aggTrade')) {
+      const d = msg.data;
+      livePrice = parseFloat(d.p);
+      tapeBuf.push({ t: d.T, q: parseFloat(d.q), buy: d.m === false }); // m=false → taker bought
+      if (tapeBuf.length > 6000) tapeBuf = tapeBuf.filter(tr => Date.now() - tr.t < 300000);
+    } else if (msg.stream.includes('kline_1m')) {
+      const k = msg.data.k;
+      if (!k.x) return;
+      oneMin.push({ t: k.t, o: parseFloat(k.o), c: parseFloat(k.c), v: parseFloat(k.v) });
+      if (oneMin.length > 2200) oneMin = oneMin.slice(-2100);
+      onMinuteClose();
+    }
+  };
+  ws.onclose = ws.onerror = () => {
+    document.getElementById('dot').className = 'dot';
+    document.getElementById('connLabel').textContent = 'Reconnecting…';
+    setTimeout(connect, 3000);
+  };
+}
+
+function connectPerp() {
+  try { wsPerp = new WebSocket('wss://fstream.binance.com/ws/btcusdt@bookTicker'); }
+  catch (e) { setTimeout(connectPerp, 5000); return; }
+  wsPerp.onmessage = e => {
+    const d = JSON.parse(e.data);
+    perpMid = (parseFloat(d.b) + parseFloat(d.a)) / 2;
+    if (livePrice != null) {
+      const basis = perpMid - livePrice;
+      basisEma = basisEma == null ? basis : basisEma * 0.995 + basis * 0.005;
+      const dev = Math.abs(basis - basisEma);
+      basisScale = basisScale * 0.995 + dev * 0.005;
+    }
+  };
+  wsPerp.onclose = wsPerp.onerror = () => setTimeout(connectPerp, 5000);
+}
+
+// perp lead: sign of basis deviation from its EMA. veto only on strong contradiction.
+function perpLead() {
+  if (perpMid == null || basisEma == null || livePrice == null) return null;
+  const dev = (perpMid - livePrice) - basisEma;
+  if (Math.abs(dev) < basisScale) return 'neutral';
+  return dev > 0 ? 'up' : 'down';
+}
+
+// tape veto: block only when the tape actively contradicts the signal
+function tapeVeto(dir) {
+  const ts = takerStats(tapeBuf, Date.now());
+  if (ts.total > 0) {
+    if (dir === 'up' && ts.ratio < 0.45) return `taker flow ${(ts.ratio * 100).toFixed(0)}% buy contradicts UP`;
+    if (dir === 'down' && ts.ratio > 0.55) return `taker flow ${(ts.ratio * 100).toFixed(0)}% buy contradicts DOWN`;
+  }
+  const pl = perpLead();
+  if (pl && pl !== 'neutral' && pl !== dir) return `perp leads ${pl.toUpperCase()} against signal`;
+  return null;
+}
+
+// ═════════════════════════════════════════════════════════════
+//  ORCHESTRATOR
+// ═════════════════════════════════════════════════════════════
+function onMinuteClose() {
+  const now = Date.now();
+  if (!oneMin.length) return;
+
+  if (hmmFitLive) {
+    const { c5, Z } = featuresLive();
+    const last = c5[c5.length - 1];
+    if (last && last.start > lastRegimeBar) {
+      regimeProbs = hmmFilter(hmmFitLive, Z.slice(-121).filter(Boolean));
+      if (regimeProbs) {
+        regimeHistory.push({ start: last.start, top: topOf(regimeProbs), conf: regimeProbs[topOf(regimeProbs)] });
+        if (regimeHistory.length > 40) regimeHistory = regimeHistory.slice(-40);
+        lastRegimeBar = last.start;
+        const sTop = stableTop(regimeHistory.map(r => r.top));
+        if (sTop) lastStable = sTop;
+      }
+      renderRegime();
+    }
+  }
+  if (now - lastTrainAt > 3600000) trainLive();
+
+  // settlement-spike watch on a pending trade
+  if (S.pendingTrade) {
+    const spike = spikeCheck(tapeBuf, now);
+    if (spike && spike !== S.pendingTrade.dir) {
+      S.spikeAlarms++; saveS();
+      logLine(`⚠ Settlement-push alarm: heavy ${spike.toUpperCase()} taker flow against pending ${S.pendingTrade.dir.toUpperCase()}`, 'yellow');
+    }
+    const done = build5m(oneMin).find(c => c.start === S.pendingTrade.candleStart && c.result);
+    if (done && done.start + FIVE_MIN <= now + 5000) resolveTrade(done);
+  }
+
+  renderBreakers(); renderEdge(); renderTape();
+  if (S.mode === 'stopped') return;
+  const cs = cStart(now);
+  const minIdx = Math.floor((now - cs) / 60000);
+  if (minIdx !== 4 || lastEvalCandle === cs) return;
+  const mins = oneMin.filter(k => k.t >= cs && k.t < cs + 4 * 60000);
+  if (!mins.length) return;
+  const cur = { start: cs, open: mins[0].o, minDirs: [null, null, null, null] };
+  for (const k of mins) {
+    const mi = Math.floor((k.t - cs) / 60000);
+    if (mi <= 3) cur.minDirs[mi] = k.c > k.o ? 'up' : (k.c < k.o ? 'down' : null);
+  }
+  lastEvalCandle = cs;
+  evaluateEntry(cur, cs);
+}
+
+function evaluateEntry(c5bar, cs) {
+  const cfg = readCfg();
+  rolloverDay();
+
+  const sig = candleSignal(c5bar, cfg.rule);
+  if (!sig) return;
+
+  // regime gate with transition softening (video doc Phase 2.5)
+  const tops = regimeHistory.map(r => r.top);
+  const sTop = stableTop(tops);
+  const flick = flickerCount(tops);
+  let effTop = sTop, softMult = 1;
+  if (!sTop && lastStable && flick <= 4) { effTop = lastStable; softMult = 0.75; }
+  if (!gateAllowsStable(cfg.gate, sig, effTop)) {
+    S.skipped++; saveS(); renderStats();
+    logLine(`Signal ${sig.toUpperCase()} gated — regime ${effTop ? effTop.toUpperCase() : 'UNSTABLE'}`, 'yellow');
+    return;
+  }
+  // confidence floor (video doc min_confidence)
+  const conf = regimeHistory.length ? regimeHistory[regimeHistory.length - 1].conf : null;
+  if (cfg.gate !== 'off' && conf != null && conf < cfg.confFloor) {
+    S.skipped++; saveS(); renderStats();
+    logLine(`Signal ${sig.toUpperCase()} blocked — regime confidence ${(conf * 100).toFixed(0)}% < floor ${(cfg.confFloor * 100).toFixed(0)}%`, 'yellow');
+    return;
+  }
+  // tape veto (research: OFI/taker-flow/perp-lead confirmation)
+  if (cfg.tape) {
+    const veto = tapeVeto(sig);
+    if (veto) {
+      S.skipped++; saveS(); renderStats();
+      logLine(`Signal ${sig.toUpperCase()} vetoed by tape: ${veto}`, 'yellow');
+      return;
+    }
+  }
+  // hard risk checks
+  const block = riskBlock(cfg, cs);
+  if (block) {
+    S.skipped++; saveS(); renderStats();
+    logLine(`Signal ${sig.toUpperCase()} blocked: ${block}`, 'yellow');
+    return;
+  }
+  // breaker ladder
+  const brk = breakerCheck(cfg, S.bankroll, S.peak, S.dayStart, S.weekStart);
+  if (brk.lockdown) { triggerLockdown(brk.reason); return; }
+  if (brk.blocked) {
+    S.skipped++; S.halts++; saveS(); renderStats();
+    logLine(`Signal ${sig.toUpperCase()} blocked by breaker: ${brk.reason}`, 'down');
+    return;
+  }
+  // CUSUM drift → extra ×0.5
+  let mult = brk.mult * softMult;
+  if (S.cusum >= CUSUM_ALARM) mult *= 0.5;
+  if (cfg.confSize && cfg.gate !== 'off') mult *= confMult(conf);
+  if (flick > 4) { mult *= 0.5; logLine(`Regime flickering (${flick} flips/20) — stakes ×0.5`, 'yellow'); }
+
+  // Bayesian-Kelly stake from the learned posterior + drawdown glidepath cap
+  const bucket = (effTop === 'bull' || effTop === 'bear') ? S.post[effTop] : S.post.global;
+  const pStats = pooledP(bucket, S.post.global);
+  let stake = computeStake(cfg, S.bankroll, cfg.entry, mult, pStats);
+  const ddCap = ddCapFraction(S.bankroll, S.peak) * S.bankroll;
+  stake = Math.min(stake, Math.round(ddCap * 100) / 100);
+  if (stake < 1) {
+    logLine(`Stake $${stake} after multipliers/glidepath — skipped (posterior p≈${(pStats.mean * 100).toFixed(1)}%, breakeven ${(breakevenP(cfg.entry) * 100).toFixed(1)}%)`, 'yellow');
+    return;
+  }
+
+  const info = `p̂ ${(pStats.mean * 100).toFixed(1)}%±${(pStats.sd * 100).toFixed(1)} · regime ${effTop}${softMult < 1 ? ' (transition ×0.75)' : ''} ${conf ? (conf * 100).toFixed(0) + '%' : ''}`;
+  if (S.mode === 'observe') {
+    logLine(`OBSERVE: would bet ${sig.toUpperCase()} $${stake} @ ${cfg.entry.toFixed(2)} · ${info}`, 'dim');
+    return;
+  }
+  S.pendingTrade = { candleStart: cs, dir: sig, stake, entry: cfg.entry, bucket: (effTop === 'bull' || effTop === 'bear') ? effTop : 'global' };
+  saveS();
+  logLine(`PAPER BET ${sig.toUpperCase()} $${stake} @ $${cfg.entry.toFixed(2)} · ${info}`, sig === 'up' ? 'up' : 'down');
+  renderBot();
+}
+
+function riskBlock(cfg, nowTs) {
+  if (S.lockdown) return 'LOCKDOWN — manual re-arm required';
+  const day = new Date();
+  if (cfg.weekend === 'block' && (day.getUTCDay() === 0 || day.getUTCDay() === 6)) return 'weekend blocked';
+  if (S.tradesToday >= cfg.maxDaily) return `max ${cfg.maxDaily} trades/day reached`;
+  if (nowTs < S.cooldownUntil) return `cooldown (${Math.ceil((S.cooldownUntil - nowTs) / FIVE_MIN)} candles left)`;
+  if (S.bankroll <= cfg.floor) return 'bankroll at floor';
+  return null;
+}
+
+function resolveTrade(c5done) {
+  const t = S.pendingTrade;
+  S.pendingTrade = null;
+  const cfg = readCfg();
+  if (c5done.result === 'flat') { saveS(); logLine('Candle flat — push, stake returned', 'dim'); renderBot(); return; }
+  const won = c5done.result === t.dir;
+  const pnl = tradePnl(t.stake, t.entry, won);
+  S.bankroll = Math.round((S.bankroll + pnl) * 100) / 100;
+  S.trades++; S.tradesToday++;
+  if (won) { S.wins++; S.streak = S.streak > 0 ? S.streak + 1 : 1; }
+  else { S.streak = S.streak < 0 ? S.streak - 1 : -1; }
+  S.peak = Math.max(S.peak, S.bankroll);
+  S.maxDd = Math.max(S.maxDd, (S.peak - S.bankroll) / S.peak * 100);
+
+  // learn: posterior, SPRT, CUSUM
+  const bucketKey = t.bucket ?? 'global';
+  S.post[bucketKey] = betaUpdate(S.post[bucketKey], won);
+  if (bucketKey !== 'global') S.post.global = betaUpdate(S.post.global, won);
+  const p0 = breakevenP(t.entry), p1 = Math.min(0.98, p0 + 0.03);
+  S.sprtLlr = sprtUpdate(S.sprtLlr, won, p0, p1);
+  if (S.sprtLlr <= SPRT_ALIVE) { S.sprtLlr = 0; logLine('SPRT: edge statistically confirmed alive — test reset', 'up'); }
+  S.cusum = cusumUpdate(S.cusum, won, p1);
+
+  if (!won && -S.streak >= cfg.maxLosses) {
+    S.cooldownUntil = Date.now() + cfg.cooldown * FIVE_MIN;
+    S.halts++;
+    logLine(`${cfg.maxLosses} straight losses — cooling down ${cfg.cooldown} candles`, 'down');
+  }
+  saveS();
+  logLine(`${won ? 'WIN' : 'LOSS'} ${t.dir.toUpperCase()} ${won ? '+' : ''}$${pnl.toFixed(2)} → bankroll $${S.bankroll.toLocaleString()}`, won ? 'up' : 'down');
+
+  if (S.sprtLlr >= SPRT_DEAD) { triggerLockdown('SPRT: win rate statistically at/below breakeven — edge dead'); }
+  else {
+    const brk = breakerCheck(cfg, S.bankroll, S.peak, S.dayStart, S.weekStart);
+    if (brk.lockdown) triggerLockdown(brk.reason);
+  }
+  renderStats(); renderBot(); renderBreakers(); renderEdge();
+}
+
+function triggerLockdown(reason) {
+  if (S.lockdown) return;
+  S.lockdown = { reason, ts: Date.now() };
+  S.mode = 'stopped'; S.halts++;
+  saveS();
+  logLine(`⛔ LOCKDOWN: ${reason}. Bot stopped. Review the log, then re-arm manually.`, 'down');
+  renderBot(); renderBreakers(); renderStats();
+}
+
+function reArm() {
+  const answer = prompt('Lockdown re-arm.\n\nHave you reviewed what went wrong in the activity log?\nType RESUME to re-arm the bot:');
+  if (answer !== 'RESUME') { logLine('Re-arm cancelled — type RESUME exactly to confirm', 'dim'); return; }
+  S.lockdown = null;
+  S.peak = S.bankroll;
+  S.sprtLlr = 0; S.cusum = 0;
+  saveS();
+  logLine('Lockdown cleared — peak & edge tests reset, bot remains STOPPED until you choose a mode', 'yellow');
+  renderBreakers(); renderBot(); renderEdge();
+}
+
+function rolloverDay() {
+  const now = Date.now();
+  const dk = jstDayKey(now), wk = jstWeekKey(now);
+  if (S.dayKey !== dk) { S.dayKey = dk; S.dayStart = S.bankroll; }
+  if (S.tradeDayKey !== dk) { S.tradeDayKey = dk; S.tradesToday = 0; }
+  if (S.weekKey !== wk) { S.weekKey = wk; S.weekStart = S.bankroll; }
+  saveS();
+}
+
+// ═════════════════════════════════════════════════════════════
+//  BACKTEST — walk-forward + benchmarks + stress + PSR
+// ═════════════════════════════════════════════════════════════
+let btRunning = false;
+
+function simulate(c5, regimeAt, cfg, opts) {
+  const rng = opts.randomSeed != null ? mulberry32(opts.randomSeed) : null;
+  const flipRng = opts.flipSeed != null ? mulberry32(opts.flipSeed) : null;
+  let bank = 10000, peak = 10000, maxDd = 0;
+  let trades = 0, wins = 0, gated = 0, breakerBlocks = 0;
+  let consecLosses = 0, cooldownBars = 0, worstStreak = 0, streak = 0;
+  let dayKey = null, dayStart = bank, weekKey = null, weekStart = bank;
+  let tradesToday = 0;
+  let locked = false;
+  let sprtLlr = 0, sprtLocked = false;
+  const post = { global: { ...PRIOR }, bull: { ...PRIOR }, bear: { ...PRIOR } };
+  const p0 = breakevenP(opts.entry), p1 = Math.min(0.98, p0 + 0.03);
+  const equity = [bank];
+  const tradeRets = [];
+  const byConf = { high: { n: 0, w: 0 }, mid: { n: 0, w: 0 }, low: { n: 0, w: 0 } };
+  const byRegime = { bull: { n: 0, w: 0 }, chop: { n: 0, w: 0 }, bear: { n: 0, w: 0 } };
+  let lastStableSim = null;
+
+  for (let i = 0; i < c5.length; i++) {
+    if (!regimeAt[i]) continue;
+    const bar = c5[i];
+    const dk = jstDayKey(bar.start), wk = jstWeekKey(bar.start);
+    if (dk !== dayKey) { dayKey = dk; dayStart = bank; tradesToday = 0; }
+    if (wk !== weekKey) { weekKey = wk; weekStart = bank; }
+
+    let sig = candleSignal(bar, cfg.rule);
+    if (rng && sig) sig = rng() < 0.5 ? 'up' : 'down';
+    if (!sig) { equity.push(bank); continue; }
+    if (locked || sprtLocked) { gated++; equity.push(bank); continue; }
+
+    const tops = [];
+    for (let k = Math.max(0, i - 19); k <= i; k++) if (regimeAt[k]) tops.push(regimeAt[k].top);
+    const sTop = stableTop(tops);
+    if (sTop) lastStableSim = sTop;
+    const flick = flickerCount(tops);
+    let effTop = sTop, softMult = 1;
+    if (!sTop && lastStableSim && flick <= 4) { effTop = lastStableSim; softMult = 0.75; }
+    if (!gateAllowsStable(opts.gate, sig, effTop)) { gated++; equity.push(bank); continue; }
+    const conf = regimeAt[i] ? regimeAt[i].conf : null;
+    if (opts.gate !== 'off' && conf != null && conf < cfg.confFloor) { gated++; equity.push(bank); continue; }
+
+    if (tradesToday >= cfg.maxDaily) { gated++; equity.push(bank); continue; }
+    if (cooldownBars > 0) { cooldownBars--; gated++; equity.push(bank); continue; }
+    if (bank <= cfg.floor) { equity.push(bank); continue; }
+
+    const brk = breakerCheck(cfg, bank, peak, dayStart, weekStart);
+    if (brk.lockdown) { locked = true; breakerBlocks++; equity.push(bank); continue; }
+    if (brk.blocked) { breakerBlocks++; gated++; equity.push(bank); continue; }
+
+    let mult = brk.mult * softMult;
+    if (cfg.confSize && opts.gate !== 'off') mult *= confMult(conf);
+    if (flick > 4) mult *= 0.5;
+
+    const bucketKey = (effTop === 'bull' || effTop === 'bear') ? effTop : 'global';
+    const pStats = pooledP(post[bucketKey], post.global);
+    let stake = computeStake(cfg, bank, opts.entry, mult, pStats);
+    stake = Math.min(stake, ddCapFraction(bank, peak) * bank);
+    if (stake < 1 || bar.result === 'flat') { equity.push(bank); continue; }
+
+    let won = bar.result === sig;
+    if (flipRng && flipRng() < 0.05) won = !won;   // outcome-flip stress
+    const bankBefore = bank;
+    bank += tradePnl(stake, opts.entry, won);
+    tradeRets.push((bank - bankBefore) / bankBefore);
+    trades++; tradesToday++; if (won) wins++;
+    post[bucketKey] = betaUpdate(post[bucketKey], won);
+    if (bucketKey !== 'global') post.global = betaUpdate(post.global, won);
+    sprtLlr = sprtUpdate(sprtLlr, won, p0, p1);
+    if (sprtLlr <= SPRT_ALIVE) sprtLlr = 0;
+    if (sprtLlr >= SPRT_DEAD) sprtLocked = true;
+
+    const cb = conf == null ? 'low' : conf >= 0.90 ? 'high' : conf >= 0.75 ? 'mid' : 'low';
+    byConf[cb].n++; if (won) byConf[cb].w++;
+    if (effTop && byRegime[effTop]) { byRegime[effTop].n++; if (won) byRegime[effTop].w++; }
+    if (won) { streak = streak > 0 ? streak + 1 : 1; consecLosses = 0; }
+    else {
+      streak = streak < 0 ? streak - 1 : -1; consecLosses++;
+      worstStreak = Math.min(worstStreak, streak);
+      if (consecLosses >= cfg.maxLosses) { cooldownBars = cfg.cooldown; consecLosses = 0; }
+    }
+    peak = Math.max(peak, bank);
+    maxDd = Math.max(maxDd, (peak - bank) / peak * 100);
+    equity.push(bank);
+  }
+  return { bank, trades, wins, gated, breakerBlocks, maxDd, worstStreak, equity, byConf, byRegime, locked: locked || sprtLocked, sprtLocked, tradeRets };
+}
+
+async function runBacktest() {
+  if (btRunning) return;
+  btRunning = true;
+  const btn = document.getElementById('btnBt'); btn.disabled = true;
+  const prog = document.getElementById('btProg'), fill = document.getElementById('btProgFill');
+  const status = document.getElementById('btStatus');
+  prog.style.display = 'block'; fill.style.width = '2%';
+  try {
+    const days = parseInt(document.getElementById('btDays').value, 10);
+    const cfg = readCfg();
+    const needed = days * 1440;
+    status.textContent = `Fetching ${days} days of 1-minute candles…`;
+
+    let all = [], endTime = Date.now();
+    while (all.length < needed) {
+      const rows = await fetchJson(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=1000&endTime=${endTime}`);
+      if (!rows.length) break;
+      all = [...rows.map(r => ({ t: r[0], o: parseFloat(r[1]), c: parseFloat(r[4]), v: parseFloat(r[5]) })), ...all];
+      endTime = rows[0][0] - 1;
+      fill.style.width = (2 + 23 * Math.min(1, all.length / needed)) + '%';
+      await new Promise(r => setTimeout(r, 250));
+    }
+    const c5 = build5m(all);
+    const Z = zScoreFeatures(rawFeatures(c5));
+
+    status.textContent = 'Training walk-forward HMM folds (BIC-selected K)…';
+    const TRAIN = 288, TEST = 72;
+    const regimeAt = new Array(c5.length).fill(null);
+    const foldStarts = [];
+    for (let s = TRAIN; s + 1 < c5.length; s += TEST) foldStarts.push(s);
+    let foldN = 0;
+    for (const start of foldStarts) {
+      const trainX = Z.slice(start - TRAIN + 1, start + 1).filter(Boolean);
+      const fit = hmmFit(trainX, { restarts: 2, maxIter: 25 });
+      const testEnd = Math.min(start + TEST, c5.length);
+      if (fit) {
+        for (let i = start; i < testEnd; i++) {
+          const histX = Z.slice(Math.max(1, i - 120), i).filter(Boolean);
+          const probs = hmmFilter(fit, histX);
+          if (probs) regimeAt[i] = { top: topOf(probs), conf: probs[topOf(probs)] };
+        }
+      }
+      foldN++;
+      fill.style.width = (25 + 45 * (foldN / foldStarts.length)) + '%';
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    status.textContent = 'Strategy + 30-seed Monte Carlo benchmarks + stress passes…';
+    await new Promise(r => setTimeout(r, 0));
+    const base = { gate: cfg.gate, entry: cfg.entry };
+    const main = simulate(c5, regimeAt, cfg, base);
+    const ungated = simulate(c5, regimeAt, cfg, { gate: 'off', entry: cfg.entry });
+
+    // 30-seed random Monte Carlo (video doc: 100 seeds mean/std — 30 is plenty at this span)
+    const randRets = [];
+    let randLocks = 0;
+    for (let s = 0; s < 30; s++) {
+      const r = simulate(c5, regimeAt, cfg, { gate: 'off', entry: cfg.entry, randomSeed: 1000 + s * 7 });
+      randRets.push((r.bank / 10000 - 1) * 100);
+      if (r.locked) randLocks++;
+      if (s % 10 === 9) { fill.style.width = (72 + s / 3) + '%'; await new Promise(rr => setTimeout(rr, 0)); }
+    }
+    const rMean = randRets.reduce((a, b) => a + b, 0) / randRets.length;
+    const rStd = Math.sqrt(randRets.reduce((a, b) => a + (b - rMean) ** 2, 0) / randRets.length);
+
+    // stress: slippage, outcome-flip MC, regime shuffle
+    const stress75 = simulate(c5, regimeAt, cfg, { ...base, entry: Math.min(0.99, cfg.entry + 0.05) });
+    const stress80 = simulate(c5, regimeAt, cfg, { ...base, entry: Math.min(0.99, cfg.entry + 0.10) });
+    const flipRets = [];
+    let flipLocks = 0, flipWorst = Infinity;
+    for (let s = 0; s < 30; s++) {
+      const r = simulate(c5, regimeAt, cfg, { ...base, flipSeed: 5000 + s * 13 });
+      const ret = (r.bank / 10000 - 1) * 100;
+      flipRets.push(ret); flipWorst = Math.min(flipWorst, ret);
+      if (r.locked) flipLocks++;
+    }
+    const fMean = flipRets.reduce((a, b) => a + b, 0) / flipRets.length;
+    // regime shuffle: garbage model in, breakers must contain damage (video doc stress c)
+    const shufRng = mulberry32(777);
+    const labels = ['bull', 'chop', 'bear'];
+    const shuffled = regimeAt.map(r => r ? { top: labels[Math.floor(shufRng() * 3)], conf: r.conf } : null);
+    const shufRes = simulate(c5, shuffled, cfg, base);
+
+    fill.style.width = '100%';
+
+    const pct = r => ((r.bank / 10000 - 1) * 100);
+    const wr = r => r.trades ? (r.wins / r.trades * 100) : 0;
+    const mainPsr = psr(main.tradeRets);
+    const fmtRow = (label, r, hl) =>
+      `<tr${hl ? ' class="hl"' : ''}><td>${label}</td><td>${r.trades}</td><td>${wr(r).toFixed(1)}%</td>` +
+      `<td class="${pct(r) >= 0 ? 'up' : 'down'}">${pct(r) >= 0 ? '+' : ''}${pct(r).toFixed(2)}%</td>` +
+      `<td>${r.maxDd.toFixed(2)}%</td><td>${r.sprtLocked ? '⛔ SPRT' : r.locked ? '⛔ DD' : '—'}</td></tr>`;
+
+    const spanDays = ((c5[c5.length - 1].start - c5[0].start) / 86400000).toFixed(1);
+    const beatRandom = pct(main) > rMean + 2 * rStd / Math.sqrt(30);
+    status.innerHTML = `Done · ${spanDays}d out-of-sample · strategy <span class="${pct(main) >= 0 ? 'up' : 'down'}">${pct(main) >= 0 ? '+' : ''}${pct(main).toFixed(2)}%</span>` +
+      ` · random MC ${rMean.toFixed(2)}%±${rStd.toFixed(2)} · <span class="${beatRandom ? 'up' : 'down'}">${beatRandom ? 'BEATS random ✓' : 'within random noise ✗'}</span>` +
+      (mainPsr != null ? ` · PSR ${(mainPsr * 100).toFixed(1)}%` : '');
+
+    drawEquity(main.equity);
+
+    let html = '<table class="bt-table"><tr><th>PASS</th><th>TRADES</th><th>WIN RATE</th><th>RETURN</th><th>MAX DD</th><th>LOCK</th></tr>';
+    html += fmtRow('YOUR STRATEGY (gated, Bayes-sized)', main, true);
+    html += fmtRow('Benchmark: ungated signal', ungated, false);
+    html += `<tr><td>Benchmark: random × 30 seeds</td><td>—</td><td>—</td><td class="${rMean >= 0 ? 'up' : 'down'}">${rMean.toFixed(2)}% ± ${rStd.toFixed(2)}</td><td>—</td><td>${randLocks}/30 locked</td></tr>`;
+    html += fmtRow(`Stress: entry @ $${Math.min(0.99, cfg.entry + 0.05).toFixed(2)}`, stress75, false);
+    html += fmtRow(`Stress: entry @ $${Math.min(0.99, cfg.entry + 0.10).toFixed(2)}`, stress80, false);
+    html += `<tr><td>Stress: 5% outcome-flip × 30 MC</td><td>—</td><td>—</td><td class="${fMean >= 0 ? 'up' : 'down'}">${fMean.toFixed(2)}% (worst ${flipWorst.toFixed(2)}%)</td><td>—</td><td>${flipLocks}/30 locked</td></tr>`;
+    html += fmtRow('Stress: regime labels SHUFFLED', shufRes, false);
+    html += '</table>';
+
+    html += '<table class="bt-table"><tr><th>CONFIDENCE AT ENTRY</th><th>TRADES</th><th>WIN RATE</th></tr>' +
+      [['high', '≥90%'], ['mid', '75–90%'], ['low', '<75%']].map(([k, lbl]) => {
+        const d = main.byConf[k];
+        return `<tr><td>${lbl}</td><td>${d.n}</td><td>${d.n ? (d.w / d.n * 100).toFixed(1) + '%' : '—'}</td></tr>`;
+      }).join('') + '</table>';
+    html += '<table class="bt-table"><tr><th>REGIME AT ENTRY</th><th>TRADES</th><th>WIN RATE</th></tr>' +
+      ['bull', 'chop', 'bear'].map(k => {
+        const d = main.byRegime[k];
+        return `<tr><td>${k.toUpperCase()}</td><td>${d.n}</td><td>${d.n ? (d.w / d.n * 100).toFixed(1) + '%' : '—'}</td></tr>`;
+      }).join('') + '</table>';
+
+    html += `<div class="note">Breakeven ${(breakevenP(cfg.entry) * 100).toFixed(1)}% at $${cfg.entry.toFixed(2)}. ` +
+      `PSR = probability the strategy's per-trade Sharpe is genuinely > 0 given ${main.trades} trades (want ≥95%). ` +
+      `Shuffled-regime pass proves breaker independence: a garbage model must not produce a blow-up. ` +
+      `Sizing inside the backtest replicates the live Bayesian posterior — stakes start small and grow only as evidence accumulates.</div>`;
+    document.getElementById('btResults').innerHTML = html;
+  } catch (e) {
+    status.textContent = 'Backtest failed: ' + (e.message || e);
+  } finally {
+    btRunning = false; btn.disabled = false;
+    setTimeout(() => { document.getElementById('btProg').style.display = 'none'; }, 800);
+  }
+}
+
+function drawEquity(eq) {
+  const cv = document.getElementById('btCanvas');
+  cv.style.display = 'block';
+  const W = cv.width = cv.clientWidth * 2, H = cv.height = 360;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+  const min = Math.min(...eq), max = Math.max(...eq), pad = (max - min) * 0.1 || 1;
+  const x = i => i / (eq.length - 1) * (W - 20) + 10;
+  const y = v => H - 20 - (v - min + pad) / (max - min + 2 * pad) * (H - 40);
+  ctx.strokeStyle = '#1e2d44'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(10, y(10000)); ctx.lineTo(W - 10, y(10000)); ctx.stroke();
+  ctx.strokeStyle = eq[eq.length - 1] >= 10000 ? '#10b981' : '#ef4444';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (let i = 0; i < eq.length; i++) i === 0 ? ctx.moveTo(x(i), y(eq[i])) : ctx.lineTo(x(i), y(eq[i]));
+  ctx.stroke();
+  ctx.fillStyle = '#4a607a'; ctx.font = '20px monospace';
+  ctx.fillText('$' + max.toFixed(0), 14, 24);
+  ctx.fillText('$' + min.toFixed(0), 14, H - 26);
+}
+
+// ═════════════════════════════════════════════════════════════
+//  UI
+// ═════════════════════════════════════════════════════════════
+function renderRegime() {
+  if (!regimeProbs) return;
+  const box = document.getElementById('regimeBox');
+  const lbl = document.getElementById('regimeLabel');
+  const sub = document.getElementById('regimeSub');
+  const top = topOf(regimeProbs);
+  const conf = (regimeProbs[top] * 100).toFixed(0);
+  box.className = 'regime-box ' + (top === 'bull' ? 'r-bull' : top === 'bear' ? 'r-bear' : 'r-chop');
+  lbl.textContent = top === 'bull' ? '▲ BULL / TRENDING UP' : top === 'bear' ? '▼ BEAR / TRENDING DOWN' : '≈ CHOP / RANGING';
+  lbl.style.color = top === 'bull' ? 'var(--green)' : top === 'bear' ? 'var(--red)' : 'var(--yellow)';
+  sub.textContent = `${conf}% confidence · ${top === 'chop' ? 'momentum signals unreliable here' : 'momentum signals favoured'}`;
+  for (const [k, elBar, elTxt] of [['bull', 'pBull', 'pBullTxt'], ['chop', 'pChop', 'pChopTxt'], ['bear', 'pBear', 'pBearTxt']]) {
+    document.getElementById(elBar).style.width = (regimeProbs[k] * 100) + '%';
+    document.getElementById(elTxt).textContent = (regimeProbs[k] * 100).toFixed(0) + '%';
+  }
+  const tops = regimeHistory.map(r => r.top);
+  const sTop = stableTop(tops);
+  const flick = flickerCount(tops);
+  const el = document.getElementById('stabLine');
+  if (!tops.length) { el.textContent = 'Stability: collecting bars…'; }
+  else if (flick > 4) {
+    el.innerHTML = `<span class="yellow">⚠ FLICKERING — ${flick} flips in last ${Math.min(20, tops.length)} bars · stakes ×0.5</span>`;
+  } else if (sTop) {
+    let run = 0;
+    for (let i = tops.length - 1; i >= 0 && tops[i] === sTop; i--) run++;
+    el.innerHTML = `<span class="${sTop === 'bull' ? 'up' : sTop === 'bear' ? 'down' : 'yellow'}">✓ STABLE ${sTop.toUpperCase()} — ${run} bars</span> <span class="dim">· gate open for ${sTop === 'chop' ? 'nothing' : sTop === 'bull' ? 'UP' : 'DOWN'}</span>`;
+  } else if (lastStable) {
+    el.innerHTML = `<span class="dim">TRANSITION — trading previous stable ${lastStable.toUpperCase()} at ×0.75 until 3-bar confirmation</span>`;
+  } else {
+    el.innerHTML = `<span class="dim">UNSTABLE — no prior stable regime · gate closed</span>`;
+  }
+}
+
+function renderEdge() {
+  const cfg = readCfg();
+  const g = betaStats(S.post.global);
+  const be = breakevenP(cfg.entry);
+  const z90 = 1.645;
+  const fmt = (st, n) => `${(st.mean * 100).toFixed(1)}%<span class="dim" style="font-size:11px">±${(z90 * st.sd * 100).toFixed(1)} · n≈${Math.round(n)}</span>`;
+  document.getElementById('emGlobal').innerHTML = fmt(g, g.n - 30);
+  const bu = betaStats(S.post.bull), br = betaStats(S.post.bear);
+  document.getElementById('emBull').innerHTML = fmt(bu, bu.n - 30);
+  document.getElementById('emBear').innerHTML = fmt(br, br.n - 30);
+  const verdict = document.getElementById('edgeVerdict');
+  const lower = g.mean - z90 * g.sd;
+  if (g.n - 30 < 20) { verdict.textContent = 'LEARNING · need more trades'; verdict.style.color = 'var(--dim)'; }
+  else if (lower > be) { verdict.textContent = `EDGE > BREAKEVEN (${(be * 100).toFixed(1)}%) ✓`; verdict.style.color = 'var(--green)'; }
+  else { verdict.textContent = `NOT YET PROVEN vs ${(be * 100).toFixed(1)}% breakeven`; verdict.style.color = 'var(--yellow)'; }
+  // SPRT meter: −2.94 (alive) … +2.94 (dead) mapped 0..100%
+  const sprtPct = Math.max(0, Math.min(100, (S.sprtLlr - SPRT_ALIVE) / (SPRT_DEAD - SPRT_ALIVE) * 100));
+  document.getElementById('sprtFill').style.width = sprtPct + '%';
+  document.getElementById('sprtFill').style.background = sprtPct > 75 ? 'var(--red)' : sprtPct > 55 ? 'var(--yellow)' : 'var(--blue)';
+  document.getElementById('sprtTxt').textContent = S.sprtLlr.toFixed(2);
+  const cuPct = Math.min(100, S.cusum / CUSUM_ALARM * 100);
+  document.getElementById('cusumFill').style.width = cuPct + '%';
+  document.getElementById('cusumFill').style.background = cuPct >= 100 ? 'var(--red)' : 'var(--yellow)';
+  document.getElementById('cusumTxt').textContent = `${S.cusum.toFixed(3)} / ${CUSUM_ALARM}${S.cusum >= CUSUM_ALARM ? ' — DRIFT: stakes ×0.5' : ''}`;
+}
+
+function renderTape() {
+  const ts = takerStats(tapeBuf, Date.now());
+  const el = document.getElementById('tpTaker');
+  if (ts.total > 0) {
+    el.textContent = (ts.ratio * 100).toFixed(0) + '%';
+    el.style.color = ts.ratio > 0.55 ? 'var(--green)' : ts.ratio < 0.45 ? 'var(--red)' : 'var(--text)';
+  }
+  const pl = perpLead();
+  const pe = document.getElementById('tpPerp');
+  pe.textContent = pl == null ? '—' : pl === 'neutral' ? 'NEUTRAL' : pl.toUpperCase();
+  pe.style.color = pl === 'up' ? 'var(--green)' : pl === 'down' ? 'var(--red)' : 'var(--dim)';
+  document.getElementById('tpSpike').textContent = S.spikeAlarms;
+  document.getElementById('tapeState').textContent = ts.total > 0 && perpMid != null ? 'live' : 'warming up…';
+}
+
+function setMode(m) {
+  if (m !== 'stopped' && S.lockdown) {
+    logLine('Cannot start — LOCKDOWN active. Re-arm first.', 'down');
+    renderBreakers(); return;
+  }
+  S.mode = m; saveS();
+  logLine(m === 'stopped' ? 'Bot KILLED — all activity stopped' :
+          m === 'observe' ? 'OBSERVE mode — logging signals, no bets' :
+          'PAPER mode — auto-betting gated signals', m === 'stopped' ? 'down' : m === 'paper' ? 'up' : 'dim');
+  renderBot();
+}
+
+function renderBot() {
+  const box = document.getElementById('botBox');
+  const st = document.getElementById('botState');
+  const dt = document.getElementById('botDetail');
+  box.className = 'bot-status' + (S.mode === 'stopped' ? ' halted' : ' running');
+  if (S.lockdown) {
+    st.textContent = '⛔ LOCKDOWN'; st.style.color = 'var(--red)';
+    dt.textContent = S.lockdown.reason + ' — review the log, then re-arm from the breaker panel.';
+  } else if (S.mode === 'stopped') {
+    st.textContent = 'STOPPED'; st.style.color = 'var(--red)';
+    dt.textContent = 'Bot is idle. Start in OBSERVE to log signals without betting.';
+  } else if (S.mode === 'observe') {
+    st.textContent = 'OBSERVING'; st.style.color = 'var(--blue)';
+    dt.textContent = 'Logging gated signals. No paper bets are placed.';
+  } else {
+    st.textContent = S.pendingTrade ? `IN TRADE · ${S.pendingTrade.dir.toUpperCase()} $${S.pendingTrade.stake}` : 'HUNTING';
+    st.style.color = 'var(--green)';
+    dt.textContent = S.pendingTrade ? 'Resolves at candle close vs Binance print.' : 'Waiting for a stable-regime, tape-confirmed signal in minute 4.';
+  }
+}
+
+function renderBreakers() {
+  const cfg = readCfg();
+  rolloverDay();
+  const dayPct = S.dayStart > 0 ? (S.bankroll - S.dayStart) / S.dayStart * 100 : 0;
+  const weekPct = S.weekStart > 0 ? (S.bankroll - S.weekStart) / S.weekStart * 100 : 0;
+  const ddPct = S.peak > 0 ? (S.peak - S.bankroll) / S.peak * 100 : 0;
+  const brk = breakerCheck(cfg, S.bankroll, S.peak, S.dayStart, S.weekStart);
+
+  const set = (id, v, col) => { const el = document.getElementById(id); el.textContent = v; if (col) el.style.color = col; };
+  set('brkDay', (dayPct >= 0 ? '+' : '') + dayPct.toFixed(2) + '%', dayPct >= 0 ? 'var(--green)' : 'var(--red)');
+  set('brkWeek', (weekPct >= 0 ? '+' : '') + weekPct.toFixed(2) + '%', weekPct >= 0 ? 'var(--green)' : 'var(--red)');
+  set('brkDd', '−' + ddPct.toFixed(2) + '%', ddPct < 5 ? 'var(--text)' : ddPct < 10 ? 'var(--yellow)' : 'var(--red)');
+  set('brkTrades', `${S.tradesToday}/${cfg.maxDaily}`, S.tradesToday >= cfg.maxDaily ? 'var(--red)' : 'var(--text)');
+
+  document.getElementById('lad1').textContent = (cfg.dayLoss / 2).toFixed(1);
+  document.getElementById('lad2').textContent = cfg.dayLoss.toFixed(0);
+
+  const lvl = document.getElementById('brkLevel');
+  if (S.lockdown) { lvl.textContent = '⛔ LOCKDOWN'; lvl.style.color = 'var(--red)'; }
+  else if (brk.blocked) { lvl.textContent = 'LEVEL 2 · ' + brk.reason.toUpperCase(); lvl.style.color = 'var(--red)'; }
+  else if (brk.mult < 1) { lvl.textContent = 'LEVEL 1 · ' + brk.reason.toUpperCase(); lvl.style.color = 'var(--yellow)'; }
+  else { lvl.textContent = 'LEVEL 0 · ALL CLEAR'; lvl.style.color = 'var(--dim)'; }
+
+  const banner = document.getElementById('lockBanner');
+  banner.className = 'lockdown-banner' + (S.lockdown ? ' active' : '');
+  if (S.lockdown) document.getElementById('lockReason').textContent =
+    `Triggered: ${S.lockdown.reason} at ${new Date(S.lockdown.ts).toLocaleString()}`;
+}
+
+function renderStats() {
+  const wr = S.trades ? (S.wins / S.trades * 100) : null;
+  const dayPnl = S.bankroll - S.dayStart;
+  const set = (id, v) => document.getElementById(id).textContent = v;
+  set('stBank', '$' + S.bankroll.toLocaleString());
+  set('stDayPnl', (dayPnl >= 0 ? '+$' : '−$') + Math.abs(dayPnl).toFixed(0));
+  document.getElementById('stDayPnl').style.color = dayPnl >= 0 ? 'var(--green)' : 'var(--red)';
+  set('stTrades', S.trades);
+  set('stWr', wr == null ? '—' : wr.toFixed(1) + '%');
+  set('stStreak', S.streak === 0 ? '—' : (S.streak > 0 ? '+' : '') + S.streak);
+  document.getElementById('stStreak').style.color = S.streak > 0 ? 'var(--green)' : S.streak < 0 ? 'var(--red)' : 'var(--dim)';
+  set('stDd', S.maxDd.toFixed(2) + '%');
+  set('stSkipped', S.skipped);
+  set('stHalts', S.halts);
+}
+
+function resetBankroll() {
+  if (!confirm('Reset paper bankroll, learned win rates and all stats? (Also clears any lockdown.)')) return;
+  S = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  saveS(); renderStats(); renderBot(); renderBreakers(); renderEdge();
+  logLine('Full reset — bankroll $10,000, posteriors back to skeptical prior', 'dim');
+}
+
+const logBuf = [];
+function logLine(msg, cls = '') {
+  const jst = new Date(Date.now() + 9 * 3600000);
+  const t = String(jst.getUTCHours()).padStart(2, '0') + ':' + String(jst.getUTCMinutes()).padStart(2, '0');
+  logBuf.unshift({ t, msg, cls });
+  if (logBuf.length > 120) logBuf.pop();
+  document.getElementById('botLog').innerHTML = logBuf.map(l =>
+    `<div class="log-line"><span class="log-time">${l.t}</span><span class="${l.cls}">${l.msg}</span></div>`).join('');
+}
+function clearBotLog() { logBuf.length = 0; document.getElementById('botLog').innerHTML = '<div class="log-empty">Cleared</div>'; }
+
+function tick() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const jst = new Date(now.getTime() + 9 * 3600000);
+  document.getElementById('clockJst').textContent =
+    `${pad(jst.getUTCHours())}:${pad(jst.getUTCMinutes())}:${pad(jst.getUTCSeconds())} JST`;
+  document.getElementById('clockUtc').textContent =
+    `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())} UTC`;
+  const sl = 300 - Math.floor((now.getTime() - cStart(now.getTime())) / 1000);
+  document.getElementById('candleClock').textContent =
+    `candle ${Math.floor(sl / 60)}:${pad(sl % 60)}`;
+}
+
+// ═════════════════════════════════════════════════════════════
+//  BOOT
+// ═════════════════════════════════════════════════════════════
+if (typeof window !== 'undefined' && typeof document !== 'undefined' && document.getElementById('botBox')) {
+  connect();
+  connectPerp();
+  renderStats(); renderBot(); renderBreakers(); renderEdge();
+  setInterval(tick, 1000); tick();
+  setInterval(() => { renderBreakers(); renderTape(); }, 15000);
+  rolloverDay();
+}
+</script>
+<script>
+// UI-only: sidebar scrollspy (separate from tested bot logic)
+(() => {
+  const items = [...document.querySelectorAll('.nav-item[href^="#"]')];
+  const secs = items.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  const onScroll = () => {
+    let cur = secs[0];
+    for (const s of secs) if (s.getBoundingClientRect().top < 130) cur = s;
+    items.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + cur.id));
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+</body>
+</html>
